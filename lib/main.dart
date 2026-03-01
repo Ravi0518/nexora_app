@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Import all required screens
-import 'screens/splash_screen.dart';
 import 'screens/language_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
@@ -14,6 +12,11 @@ import 'screens/profile_screen.dart';
 import 'screens/enthusiast_home_screen.dart';
 import 'screens/verify_email_panel.dart';
 import 'screens/otp_screen.dart';
+import 'screens/emergency_screen.dart';
+import 'screens/report_incident_screen.dart';
+import 'screens/nearby_rescuers_screen.dart';
+import 'screens/map_screen.dart';
+import 'screens/content_contribution_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,28 +58,37 @@ class NexoraApp extends StatelessWidget {
         fontFamily: 'Inter',
         useMaterial3: true,
       ),
-      initialRoute: isLoggedIn ? '/home' : '/',
+      // First-run: show language picker → then login. Returning user: go to /home.
+      initialRoute: isLoggedIn ? '/home' : '/language',
       routes: {
-        '/': (context) => const LoginScreen(),
+        '/': (context) => const LanguageScreen(),
         '/language': (context) => const LanguageScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/signup': (context) => const SignupScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-        // main.dart routes:
-        '/otp': (context) => const OTPScreen(userData: {}), // Placeholder
 
-        // CRITICAL FIX: Registered the Verification Panel route
+        // Auth screens — pass the saved language so they are localized from the start
+        '/login': (context) => LoginScreen(lang: selectedLang),
+        '/signup': (context) => SignupScreen(lang: selectedLang),
+        '/forgot-password': (context) =>
+            ForgotPasswordScreen(lang: selectedLang),
+
+        '/otp': (context) => OTPScreen(userData: const {}, lang: selectedLang),
         '/verify-email': (context) => const VerifyEmailPanel(),
 
-        // Main flow for general users
-        '/home': (context) => MainNavigation(
-            lang: selectedLang, role: userRole ?? 'general_public'),
+        // Main navigation (bottom nav) — user & enthusiast home
+        '/home': (context) =>
+            MainNavigation(lang: selectedLang, role: userRole ?? 'user'),
 
         '/enthusiast-home': (context) =>
             EnthusiastHomeScreen(lang: selectedLang),
 
+        '/emergency': (context) => EmergencyScreen(lang: selectedLang),
+        '/report-incident': (context) => const ReportIncidentScreen(),
+        '/nearby-experts': (context) => const NearbyRescuersScreen(),
+        '/map': (context) => const MapScreen(),
+        '/content-contribution': (context) =>
+            ContentContributionScreen(lang: selectedLang),
+
         '/admin-dashboard': (context) => const Scaffold(
-              body: Center(child: Text("Admin Dashboard coming soon!")),
+              body: Center(child: Text('Admin Dashboard coming soon!')),
             ),
       },
     );
@@ -96,29 +108,72 @@ class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
   List<Widget> _pages = [];
   bool _isDataLoaded = false;
+  late String _currentLang;
 
   @override
   void initState() {
     super.initState();
+    _currentLang = widget.lang;
     _initAppData();
   }
 
   Future<void> _initAppData() async {
     final prefs = await SharedPreferences.getInstance();
-
     final String name = prefs.getString('fname') ?? 'Explorer';
     final String email = prefs.getString('email') ?? 'user@nexora.com';
+    final String lang = prefs.getString('user_lang') ?? widget.lang;
 
+    if (mounted) setState(() => _currentLang = lang);
+    _buildPages(name: name, email: email, lang: lang);
+  }
+
+  void _buildPages(
+      {required String name, required String email, required String lang}) {
     setState(() {
       _pages = [
-        const UserHomeScreen(),
-        ScanScreen(lang: widget.lang),
-        CollectionScreen(lang: widget.lang),
+        UserHomeScreen(lang: lang),
+        ScanScreen(lang: lang),
+        CollectionScreen(lang: lang),
         ProfileScreen(
-            userData: {'full_name': name, 'email': email, 'role': widget.role}),
+          userData: {
+            'full_name': name,
+            'email': email,
+            'role': widget.role,
+            'language': lang,
+          },
+          onLanguageChanged: (newLang) async {
+            final prefs = await SharedPreferences.getInstance();
+            final savedName = prefs.getString('fname') ?? name;
+            final savedEmail = prefs.getString('email') ?? email;
+            setState(() => _currentLang = newLang);
+            _buildPages(name: savedName, email: savedEmail, lang: newLang);
+          },
+        ),
       ];
       _isDataLoaded = true;
     });
+  }
+
+  String _navLabel(String key) {
+    final labels = {
+      'home': {'English': 'Home', 'සිංහල': 'මුල් පිටුව', 'தமிழ்': 'முகப்பு'},
+      'identify': {
+        'English': 'Identify',
+        'සිංහල': 'හඳුනාගන්න',
+        'தமிழ்': 'அடையாளம்'
+      },
+      'collection': {
+        'English': 'Collection',
+        'සිංහල': 'එකතුව',
+        'தமிழ்': 'தொகுப்பு'
+      },
+      'profile': {
+        'English': 'Profile',
+        'සිංහල': 'පැතිකඩ',
+        'தமிழ்': 'சுயවිවරம்'
+      },
+    };
+    return labels[key]?[_currentLang] ?? labels[key]?['English'] ?? key;
   }
 
   @override
@@ -129,24 +184,40 @@ class _MainNavigationState extends State<MainNavigation> {
               child: CircularProgressIndicator(color: Color(0xFF00FF66))));
     }
 
-    return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _pages),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF050F08),
-        selectedItemColor: const Color(0xFF00FF66),
-        unselectedItemColor: Colors.white38,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_scanner_rounded), label: 'Identify'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_rounded), label: 'Collection'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded), label: 'Profile'),
-        ],
+    return PopScope(
+      // Never allow a back-swipe/button to pop the /home route (looks like logout)
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        // If not on the Home tab, jump back to it
+        if (_selectedIndex != 0) {
+          setState(() => _selectedIndex = 0);
+        }
+        // If already on Home tab, do nothing (stay in the app)
+      },
+      child: Scaffold(
+        body: IndexedStack(index: _selectedIndex, children: _pages),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (i) => setState(() => _selectedIndex = i),
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: const Color(0xFF050F08),
+          selectedItemColor: const Color(0xFF00FF66),
+          unselectedItemColor: Colors.white38,
+          items: [
+            BottomNavigationBarItem(
+                icon: const Icon(Icons.home_filled), label: _navLabel('home')),
+            BottomNavigationBarItem(
+                icon: const Icon(Icons.qr_code_scanner_rounded),
+                label: _navLabel('identify')),
+            BottomNavigationBarItem(
+                icon: const Icon(Icons.grid_view_rounded),
+                label: _navLabel('collection')),
+            BottomNavigationBarItem(
+                icon: const Icon(Icons.person_outline_rounded),
+                label: _navLabel('profile')),
+          ],
+        ),
       ),
     );
   }

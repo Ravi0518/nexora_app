@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'otp_screen.dart'; // Make sure to create this file
+import '../services/language_service.dart';
+import 'otp_screen.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  final String lang;
+  const SignupScreen({super.key, this.lang = 'English'});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -21,22 +23,21 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
   bool _obscure = true;
 
-  // --- REGISTRATION LOGIC ---
+  // Localization helper
+  String _t(String key) => LanguageService.t(widget.lang, key);
+
   void _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // PHASE 1: Send OTP & Check Email Availability on Server
       final res = await _auth.sendOTP(_emailController.text.trim());
 
       if (!mounted) return;
       setState(() => _isLoading = false);
 
       if (res['success']) {
-        // PHASE 2: Navigate to OTP Verification Screen
-        // We pass the data here, but it ONLY saves to the DB after OTP is verified
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -47,11 +48,11 @@ class _SignupScreenState extends State<SignupScreen> {
                 'password': _passController.text.trim(),
                 'role': _selectedRole,
               },
+              lang: widget.lang,
             ),
           ),
         );
       } else {
-        // Show Error (e.g., Email already registered)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(res['message']),
@@ -64,7 +65,10 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Connection error. Is Laravel running?"), backgroundColor: Colors.orange),
+        SnackBar(
+          content: Text(_t('error_network')),
+          backgroundColor: Colors.orange,
+        ),
       );
     }
   }
@@ -74,9 +78,9 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF07120B),
       appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white)
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -84,59 +88,85 @@ class _SignupScreenState extends State<SignupScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // Branded Logo
-              Image.asset('assets/images/logo.png', height: 100,
-                  errorBuilder: (c, e, s) => const Icon(Icons.bug_report, color: Color(0xFF00FF66), size: 50)),
+              Image.asset('assets/images/nexor.png',
+                  height: 100,
+                  errorBuilder: (c, e, s) => const Icon(Icons.bug_report,
+                      color: Color(0xFF00FF66), size: 50)),
 
               const SizedBox(height: 25),
-              const Text("Create Account", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+              Text(_t('create_account'),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              const Text("Verify your email to join Nexora.", style: TextStyle(color: Colors.white38, fontSize: 16)),
+              Text(_t('signup_subtitle'),
+                  style: const TextStyle(color: Colors.white38, fontSize: 16),
+                  textAlign: TextAlign.center),
               const SizedBox(height: 40),
 
               // ROLE SELECTION
-              const Align(alignment: Alignment.centerLeft, child: Text("I am a...", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w500))),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(_t('i_am_a'),
+                    style: const TextStyle(
+                        color: Colors.white70, fontWeight: FontWeight.w500)),
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _roleBtn("General Public", _selectedRole == 'user', () => setState(() => _selectedRole = 'user')),
+                  _roleBtn(_t('general_public'), _selectedRole == 'user',
+                      () => setState(() => _selectedRole = 'user')),
                   const SizedBox(width: 10),
-                  _roleBtn("Snake Enthusiast", _selectedRole == 'enthusiast', () => setState(() => _selectedRole = 'enthusiast')),
+                  _roleBtn(
+                      _t('snake_enthusiast'),
+                      _selectedRole == 'enthusiast',
+                      () => setState(() => _selectedRole = 'enthusiast')),
                 ],
               ),
 
               const SizedBox(height: 35),
 
-              _label("Full Name"),
-              _field(_nameController, "Enter your name", Icons.person_outline,
-                  validator: (v) => (v == null || v.isEmpty) ? "Name is required" : null),
+              _label(_t('full_name')),
+              _field(_nameController, _t('name_hint'), Icons.person_outline,
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? _t('name_required') : null),
 
               const SizedBox(height: 20),
 
-              _label("Email Address"),
-              _field(_emailController, "example@mail.com", Icons.email_outlined,
-                  validator: (v) => (v != null && !v.contains('@')) ? "Invalid email" : null),
+              _label(_t('email')),
+              _field(_emailController, 'example@mail.com', Icons.email_outlined,
+                  validator: (v) => (v != null && !v.contains('@'))
+                      ? _t('email_invalid')
+                      : null),
 
               const SizedBox(height: 20),
 
-              _label("Password"),
-              _field(_passController, "Min. 8 characters", Icons.lock_outline, isPass: true,
-                  validator: (v) => (v != null && v.length < 8) ? "Password too short" : null),
+              _label(_t('password')),
+              _field(_passController, _t('pass_min'), Icons.lock_outline,
+                  isPass: true,
+                  validator: (v) =>
+                      (v != null && v.length < 8) ? _t('pass_short') : null),
 
               const SizedBox(height: 50),
 
-              // MAIN CTA BUTTON
               SizedBox(
-                width: double.infinity, height: 60,
+                width: double.infinity,
+                height: 60,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00FF66),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: _isLoading ? null : _handleSignup,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.black)
-                      : const Text("Get Verification Code", style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                      : Text(_t('get_code'),
+                          style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold)),
                 ),
               ),
 
@@ -144,10 +174,15 @@ class _SignupScreenState extends State<SignupScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Already have an account? ", style: TextStyle(color: Colors.white38)),
+                  Text(_t('already_account'),
+                      style: const TextStyle(color: Colors.white38)),
                   GestureDetector(
-                    onTap: () => Navigator.pushReplacementNamed(context, '/login'),
-                    child: const Text("Log In", style: TextStyle(color: Color(0xFF00FF66), fontWeight: FontWeight.bold)),
+                    onTap: () =>
+                        Navigator.pushReplacementNamed(context, '/login'),
+                    child: Text(_t('log_in'),
+                        style: const TextStyle(
+                            color: Color(0xFF00FF66),
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -159,37 +194,63 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  // --- UI HELPER WIDGETS ---
   Widget _roleBtn(String t, bool s, VoidCallback onTap) => Expanded(
-    child: GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(
-          color: s ? const Color(0xFF132A1C) : const Color(0xFF1A1F1B),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: s ? const Color(0xFF00FF66) : Colors.transparent),
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            decoration: BoxDecoration(
+              color: s ? const Color(0xFF132A1C) : const Color(0xFF1A1F1B),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: s ? const Color(0xFF00FF66) : Colors.transparent),
+            ),
+            child: Center(
+                child: Text(t,
+                    style: TextStyle(
+                        color: s ? Colors.white : Colors.white38,
+                        fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center)),
+          ),
         ),
-        child: Center(child: Text(t, style: TextStyle(color: s ? Colors.white : Colors.white38, fontWeight: FontWeight.bold))),
-      ),
-    ),
-  );
+      );
 
-  Widget _label(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15))));
+  Widget _label(String text) => Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(text,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15))));
 
-  Widget _field(TextEditingController c, String h, IconData i, {bool isPass = false, String? Function(String?)? validator}) => TextFormField(
-    controller: c,
-    obscureText: isPass ? _obscure : false,
-    validator: validator,
-    style: const TextStyle(color: Colors.white),
-    decoration: InputDecoration(
-      hintText: h, hintStyle: const TextStyle(color: Colors.white10),
-      prefixIcon: Icon(i, color: Colors.white38, size: 20),
-      suffixIcon: isPass ? IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: Colors.white38), onPressed: () => setState(() => _obscure = !_obscure)) : null,
-      filled: true, fillColor: const Color(0xFF1A1F1B),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF00FF66))),
-      errorStyle: const TextStyle(color: Colors.redAccent),
-    ),
-  );
+  Widget _field(TextEditingController c, String h, IconData i,
+          {bool isPass = false, String? Function(String?)? validator}) =>
+      TextFormField(
+        controller: c,
+        obscureText: isPass ? _obscure : false,
+        validator: validator,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: h,
+          hintStyle: const TextStyle(color: Colors.white10),
+          prefixIcon: Icon(i, color: Colors.white38, size: 20),
+          suffixIcon: isPass
+              ? IconButton(
+                  icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.white38),
+                  onPressed: () => setState(() => _obscure = !_obscure))
+              : null,
+          filled: true,
+          fillColor: const Color(0xFF1A1F1B),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF00FF66))),
+          errorStyle: const TextStyle(color: Colors.redAccent),
+        ),
+      );
 }

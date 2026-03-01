@@ -1,54 +1,385 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../services/language_service.dart';
+import '../services/nexora_api_service.dart';
+import 'scan_screen.dart';
+import 'collection_screen.dart';
+import 'report_incident_screen.dart';
+import 'emergency_screen.dart';
+import 'nearby_rescuers_screen.dart';
+import 'map_screen.dart';
 
+/// User Home Screen — matches Screen 16 design:
+/// Snake-eye hero card, My Collection & Report tiles, Did You Know fact card.
 class UserHomeScreen extends StatefulWidget {
-  const UserHomeScreen({super.key});
+  final String lang;
+  const UserHomeScreen({super.key, this.lang = 'English'});
 
   @override
   State<UserHomeScreen> createState() => _UserHomeScreenState();
 }
 
 class _UserHomeScreenState extends State<UserHomeScreen> {
-  String firstName = "Ravindu";
-  String userRole = "General Public";
+  String _firstName = 'Explorer';
+  String _userRole = 'General Public';
+  Map<String, dynamic> _fact = {
+    'fact':
+        'The Inland Taipan has the most toxic venom of any snake in the world.',
+    'image_url': null,
+  };
+  bool _factDismissed = false;
 
-  // --- LOGIC: Call Emergency 119 ---
+  String _t(String key) => LanguageService.t(widget.lang, key);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Try fetching fresh profile from API
+    final profile = await NexoraApiService.getUserProfile();
+    final fact = await NexoraApiService.getRandomFact();
+
+    if (!mounted) return;
+    setState(() {
+      _firstName = profile?['fname'] ?? prefs.getString('fname') ?? 'Explorer';
+      _userRole =
+          profile?['role'] ?? prefs.getString('role') ?? 'General Public';
+      _fact = fact;
+    });
+  }
+
   Future<void> _callEmergency() async {
-    final Uri url = Uri.parse('tel:119');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    }
+    final url = Uri.parse('tel:1990');
+    if (await canLaunchUrl(url)) await launchUrl(url);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF07120B),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
+
+              // ── HEADER ─────────────────────────────────────────────────
+              _buildHeader(),
+              const SizedBox(height: 24),
+
+              // ── IDENTIFY HERO CARD (Screen 16 style) ───────────────────
+              _buildIdentifyCard(),
+              const SizedBox(height: 16),
+
+              // ── MY COLLECTION + REPORT INCIDENT (side by side) ─────────
+              Row(
                 children: [
-                  const SizedBox(height: 30),
-                  _buildHeader(),
-                  const SizedBox(height: 40),
-
-                  // QUICK SCAN: Opens Scan Screen
-                  _buildScanHeroCard(),
-
-                  const SizedBox(height: 35),
-                  _buildStatsRow(),
-                  const SizedBox(height: 35),
-                  const Text("Quick Services",
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  _buildServiceGrid(),
-                  const SizedBox(height: 30),
+                  Expanded(
+                      child: _buildTileCard(
+                    title: _t('my_collection'),
+                    subtitle: 'View past identifications',
+                    imagePath: null,
+                    accent: const Color(0xFF1A2E1F),
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                CollectionScreen(lang: widget.lang))),
+                  )),
+                  const SizedBox(width: 14),
+                  Expanded(
+                      child: _buildTileCard(
+                    title: 'Report an Incident',
+                    subtitle: 'Report a snake sighting or incident',
+                    imagePath: null,
+                    accent: const Color(0xFF1F1A0E),
+                    isMap: true,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ReportIncidentScreen())),
+                  )),
                 ],
               ),
+              const SizedBox(height: 16),
+
+              // ── DID YOU KNOW CARD ───────────────────────────────────────
+              if (!_factDismissed) _buildDidYouKnowCard(),
+              if (!_factDismissed) const SizedBox(height: 16),
+
+              // ── QUICK ACTIONS ───────────────────────────────────────────
+              Text('Quick Services',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              _buildQuickActions(),
+              const SizedBox(height: 30),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── WIDGETS ─────────────────────────────────────────────────────────────────
+
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF131A14),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(
+                  'assets/images/nexor.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Welcome, $_firstName!',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                Text(_userRole,
+                    style:
+                        const TextStyle(color: Colors.white38, fontSize: 12)),
+              ],
+            ),
+          ],
+        ),
+        IconButton(
+          icon: const Icon(Icons.settings_outlined, color: Colors.white54),
+          onPressed: () {},
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIdentifyCard() {
+    return GestureDetector(
+      onTap: () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => ScanScreen(lang: widget.lang))),
+      child: Container(
+        width: double.infinity,
+        height: 210,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          color: const Color(0xFF0D2018),
+          image: const DecorationImage(
+            image: AssetImage(
+              'assets/images/Sri Lankan green vine snake.jpg',
+            ),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(Color(0xAA07120B), BlendMode.darken),
+            onError: null,
+          ),
+        ),
+        child: Stack(
+          children: [
+            // gradient overlay
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Color(0xDD07120B)],
+                  stops: [0.3, 1.0],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Identify a Snake',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(
+                          'Tap here to scan and identify\na snake in real-time.',
+                          style: const TextStyle(
+                              color: Colors.white60, fontSize: 12)),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00FF66),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.camera_alt, color: Colors.black, size: 16),
+                        SizedBox(width: 5),
+                        Text('Scan',
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTileCard({
+    required String title,
+    required String subtitle,
+    required String? imagePath,
+    required Color accent,
+    required VoidCallback onTap,
+    bool isMap = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 160,
+        decoration: BoxDecoration(
+          color: accent,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Stack(
+          children: [
+            // Icon background
+            Positioned(
+              right: -10,
+              top: -10,
+              child: Icon(
+                isMap ? Icons.map_outlined : Icons.grid_view_rounded,
+                size: 90,
+                color: Colors.white.withValues(alpha: 0.05),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      isMap
+                          ? Icons.add_location_alt_rounded
+                          : Icons.collections_bookmark_rounded,
+                      color:
+                          isMap ? Colors.orangeAccent : const Color(0xFF00FF66),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(title,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14)),
+                  const SizedBox(height: 3),
+                  Text(subtitle,
+                      style:
+                          const TextStyle(color: Colors.white38, fontSize: 10),
+                      maxLines: 2),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDidYouKnowCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131A14),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Did you know?',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15)),
+                const SizedBox(height: 6),
+                Text(_fact['fact'] ?? '',
+                    style: const TextStyle(
+                        color: Colors.white60, fontSize: 13, height: 1.4)),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () => setState(() => _factDismissed = true),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.white10,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text('Dismiss',
+                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 80,
+              height: 80,
+              color: const Color(0xFF0A140A),
+              child: const Icon(Icons.pest_control_rounded,
+                  color: Color(0xFF00FF66), size: 40),
             ),
           ),
         ],
@@ -56,127 +387,65 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildQuickActions() {
+    final actions = [
+      _Action(
+          'Emergency',
+          Icons.local_hospital_rounded,
+          Colors.redAccent,
+          () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => EmergencyScreen(lang: widget.lang)))),
+      _Action(
+          'Experts',
+          Icons.people_alt_rounded,
+          Colors.purpleAccent,
+          () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const NearbyRescuersScreen()))),
+      _Action(
+          'Live Map',
+          Icons.map_rounded,
+          Colors.tealAccent,
+          () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const MapScreen()))),
+      _Action('Call 1990', Icons.phone_in_talk_rounded, Colors.greenAccent,
+          _callEmergency),
+    ];
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Hello, $firstName",
-                style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(userRole, style: const TextStyle(color: Colors.white54, fontSize: 13)),
-          ],
-        ),
-        const CircleAvatar(
-          radius: 26,
-          backgroundColor: Color(0xFF131A14),
-          child: Icon(Icons.person_outline, color: Color(0xFF00FF66)),
-        )
-      ],
+      children: actions
+          .map((a) => Expanded(
+                child: GestureDetector(
+                  onTap: a.onTap,
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF131A14),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(a.icon, color: a.color, size: 22),
+                        const SizedBox(height: 6),
+                        Text(a.label,
+                            style: const TextStyle(
+                                color: Colors.white60, fontSize: 10),
+                            textAlign: TextAlign.center),
+                      ],
+                    ),
+                  ),
+                ),
+              ))
+          .toList(),
     );
   }
+}
 
-  Widget _buildScanHeroCard() {
-    return InkWell(
-      onTap: () => Navigator.pushNamed(context, '/scan'),
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: const Color(0xFF131A14),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFF00FF66).withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            const Icon(Icons.center_focus_weak, color: Color(0xFF00FF66), size: 60),
-            const SizedBox(height: 15),
-            const Text("Quick Scan", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text("Identify species instantly", style: TextStyle(color: Colors.white38, fontSize: 14)),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00FF66),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text("OPEN CAMERA", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        _statItem("12", "Species"),
-        const SizedBox(width: 15),
-        _statItem("24/7", "Support"),
-        const SizedBox(width: 15),
-        _statItem("Live", "Map"),
-      ],
-    );
-  }
-
-  Widget _statItem(String value, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(color: const Color(0xFF131A14), borderRadius: BorderRadius.circular(18)),
-        child: Column(
-          children: [
-            Text(value, style: const TextStyle(color: Color(0xFF00FF66), fontSize: 18, fontWeight: FontWeight.bold)),
-            Text(label, style: const TextStyle(color: Colors.white38, fontSize: 11)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildServiceGrid() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 15,
-      mainAxisSpacing: 15,
-      childAspectRatio: 1.3,
-      children: [
-        _serviceCard("Report Sighting", Icons.add_location_alt, Colors.orangeAccent, () {
-          // Add Report Sighting Navigation here
-        }),
-        _serviceCard("Emergency", Icons.phone_forwarded, Colors.redAccent, _callEmergency),
-        _serviceCard("Knowledge Hub", Icons.auto_stories, Colors.blueAccent, () {
-          Navigator.pushNamed(context, '/collection'); // Knowledge Hub opens collection
-        }),
-        _serviceCard("Nearby Experts", Icons.people_alt, Colors.purpleAccent, () {
-          // Add Experts Navigation here
-        }),
-      ],
-    );
-  }
-
-  Widget _serviceCard(String title, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(color: const Color(0xFF131A14), borderRadius: BorderRadius.circular(20)),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 10),
-            Text(title, style: const TextStyle(color: Colors.white, fontSize: 12)),
-          ],
-        ),
-      ),
-    );
-  }
+class _Action {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _Action(this.label, this.icon, this.color, this.onTap);
 }

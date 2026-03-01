@@ -4,14 +4,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // Use your Mac's Local IP (Run 'ifconfig' in terminal to find it)
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  // 🔧 Use your Mac's WiFi IP (run: ipconfig getifaddr en0 in terminal)
+  // ❌ 10.0.2.2 only works for Android Emulator, NOT real devices!
+  static const String baseUrl = 'http://192.168.8.102:8000/api';
 
   /// STEP 1: Send OTP to check email availability
   Future<Map<String, dynamic>> sendOTP(String email) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/send-otp'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: jsonEncode({'email': email}),
       );
 
@@ -22,11 +27,15 @@ class AuthService {
   }
 
   /// STEP 2: Verify OTP and create the account
-  Future<Map<String, dynamic>> verifyAndRegister(Map<String, String> userData, String otp) async {
+  Future<Map<String, dynamic>> verifyAndRegister(
+      Map<String, String> userData, String otp) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/verify-register'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: jsonEncode({
           'fname': userData['fname'],
           'email': userData['email'],
@@ -45,7 +54,10 @@ class AuthService {
         return {'success': true, 'message': data['message']};
       }
 
-      return {'success': false, 'message': data['message'] ?? 'Registration failed'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Registration failed'
+      };
     } catch (e) {
       return {'success': false, 'message': 'Server error: $e'};
     }
@@ -60,7 +72,10 @@ class AuthService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/register'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: jsonEncode({
           'fname': fname,
           'lname': 'NexoraUser', // Required by DB Schema
@@ -77,14 +92,23 @@ class AuthService {
         return {'success': true, 'message': 'Account created successfully!'};
       }
       // Handle Duplicate Email (Requirement 03)
-      else if (response.statusCode == 409 || (response.statusCode == 422 && data['errors']?['email'] != null)) {
-        return {'success': false, 'message': 'This email is already registered.'};
-      }
-      else {
-        return {'success': false, 'message': data['message'] ?? 'Registration failed.'};
+      else if (response.statusCode == 409 ||
+          (response.statusCode == 422 && data['errors']?['email'] != null)) {
+        return {
+          'success': false,
+          'message': 'This email is already registered.'
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Registration failed.'
+        };
       }
     } catch (e) {
-      return {'success': false, 'message': 'Network Error: Cannot reach server.'};
+      return {
+        'success': false,
+        'message': 'Network Error: Cannot reach server.'
+      };
     }
   }
 
@@ -93,7 +117,10 @@ class AuthService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/login'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: jsonEncode({'email': email, 'password': password}),
       );
 
@@ -101,21 +128,27 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
+        final user = data['user'] as Map<String, dynamic>? ?? {};
 
-        // FIX: Mapping 'access_token' from Laravel response
-        await prefs.setString('token', data['access_token']);
-        await prefs.setString('user_id', data['user']['user_id'].toString());
-        await prefs.setString('fname', data['user']['fname']);
-        await prefs.setString('email', data['user']['email']);
-        await prefs.setString('role', data['user']['role']);
+        // Null-safe writes — setString() requires non-null String
+        await prefs.setString(
+            'token', (data['access_token'] ?? data['token'] ?? '').toString());
+        await prefs.setString(
+            'user_id', (user['user_id'] ?? user['id'] ?? '').toString());
+        await prefs.setString(
+            'fname', (user['fname'] ?? user['name'] ?? '').toString());
+        await prefs.setString('email', (user['email'] ?? '').toString());
+        await prefs.setString('role', (user['role'] ?? 'user').toString());
 
-        return {'success': true, 'role': data['user']['role']};
+        return {'success': true, 'role': (user['role'] ?? 'user').toString()};
       }
       // Handle Account Not Active (SRS Requirement)
       else if (response.statusCode == 403) {
-        return {'success': false, 'message': 'Account inactive. Please verify email.'};
-      }
-      else {
+        return {
+          'success': false,
+          'message': 'Account inactive. Please verify email.'
+        };
+      } else {
         return {'success': false, 'message': 'Invalid email or password.'};
       }
     } catch (e) {
@@ -132,7 +165,10 @@ class AuthService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/forgot-password'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: jsonEncode({'email': email}),
       );
 
@@ -163,7 +199,64 @@ class AuthService {
     final String? token = prefs.getString('token');
     return {
       'Accept': 'application/json',
+      'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3. PROFILE MANAGEMENT (Own account modification - SRS Requirement)
+  // ---------------------------------------------------------------------------
+
+  /// Update user profile (name, phone).
+  Future<Map<String, dynamic>> updateProfile(String name, String phone) async {
+    try {
+      final headers = await getAuthHeaders();
+      final prefs = await SharedPreferences.getInstance();
+      final String? userId = prefs.getString('user_id');
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/user/update/$userId'),
+        headers: headers,
+        body: jsonEncode({'fname': name, 'phone': phone}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        // Update cached name locally
+        await prefs.setString('fname', name);
+        return {'success': true, 'message': 'Profile updated successfully.'};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Update failed.'};
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Delete the authenticated user's account permanently.
+  Future<Map<String, dynamic>> deleteAccount() async {
+    try {
+      final headers = await getAuthHeaders();
+      final prefs = await SharedPreferences.getInstance();
+      final String? userId = prefs.getString('user_id');
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/user/delete/$userId'),
+        headers: headers,
+      );
+
+      // Accept 200 or 204 as success
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        await prefs.clear();
+        return {'success': true};
+      }
+      final data = response.body.isNotEmpty
+          ? jsonDecode(response.body)
+          : <String, dynamic>{};
+      return {'success': false, 'message': data['message'] ?? 'Delete failed.'};
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
   }
 }

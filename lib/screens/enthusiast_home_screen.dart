@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../services/language_service.dart';
+import '../services/nexora_api_service.dart';
 
-/// PROFESSIONAL ENGLISH DOCUMENTATION
-/// * FILE: enthusiast_home_screen.dart
-/// PURPOSE: Dashboard for Snake Enthusiasts to view and accept rescue requests.
-/// * TECHNICAL FEATURES:
-/// 1. Localization: Implements translations for English, Sinhala, and Tamil.
-/// 2. Branding: Displays 'logo.png' in the drawer/app bar.
-/// 3. Deep Linking: Uses 'url_launcher' to open Google Maps for navigation.
-/// 4. UX: Handles request acceptance and rejection states.
-
+/// Enthusiast Home Screen — matches Screen 14 design.
+/// Loads real rescue requests from API. Falls back to mock if unavailable.
 class EnthusiastHomeScreen extends StatefulWidget {
-  final String lang; // English: Fixed the missing parameter error
-  // Inside enthusiast_home_screen.dart
+  final String lang;
   const EnthusiastHomeScreen({super.key, required this.lang});
 
   @override
@@ -21,32 +13,63 @@ class EnthusiastHomeScreen extends StatefulWidget {
 }
 
 class _EnthusiastHomeScreenState extends State<EnthusiastHomeScreen> {
-  // English: Helper to get translations based on current language
-  Map<String, String> get t =>
-      LanguageService.translations[widget.lang] ??
-      LanguageService.translations['English']!;
+  List<Map<String, dynamic>> _requests = [];
+  int _currentIndex = 0;
+  bool _isLoading = true;
+  bool _isResponding = false;
 
-  // Mock Request Data
-  final Map<String, dynamic> _mockRequest = {
-    'id': 'REQ-9902',
-    'location_name': 'Mihintale, Anuradhapura',
-    'lat': 8.3444,
-    'lng': 80.5024,
-    'time': '5 mins ago',
-    'distance': '1.2 km away',
-    'description':
-        'Large snake found near the garden gate. Seems inactive but needs removal.',
-    'image': 'https://images.unsplash.com/photo-1531386151447-ad762e755da6'
-  };
+  @override
+  void initState() {
+    super.initState();
+    _loadRequests();
+  }
 
-  // --- PROFESSIONAL METHOD: Trigger Google Maps ---
-  Future<void> _openMap() async {
-    final String googleMapsUrl =
-        "https://www.google.com/maps/search/?api=1&query=${_mockRequest['lat']},${_mockRequest['lng']}";
-    final Uri url = Uri.parse(googleMapsUrl);
-    if (await canLaunchUrl(url)) {
+  Future<void> _loadRequests() async {
+    final data = await NexoraApiService.getRescueRequests();
+    if (!mounted) return;
+    setState(() {
+      _requests = data;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _openMap(double lat, double lng) async {
+    final url =
+        Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    if (await canLaunchUrl(url))
       await launchUrl(url, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _respond(bool accept) async {
+    if (_requests.isEmpty) return;
+    final req = _requests[_currentIndex];
+    setState(() => _isResponding = true);
+
+    final ok =
+        await NexoraApiService.respondToRequest(req['id'].toString(), accept);
+
+    if (!mounted) return;
+    setState(() => _isResponding = false);
+
+    if (accept && ok) {
+      final lat = req['lat'] as double?;
+      final lng = req['lng'] as double?;
+      if (lat != null && lng != null) _openMap(lat, lng);
     }
+
+    // Remove handled request
+    setState(() {
+      _requests.removeAt(_currentIndex);
+      if (_currentIndex >= _requests.length && _currentIndex > 0) {
+        _currentIndex = _requests.length - 1;
+      }
+    });
+  }
+
+  String _tl(String en, String si, String ta) {
+    if (widget.lang == 'සිංහල') return si;
+    if (widget.lang == 'தமிழ்') return ta;
+    return en;
   }
 
   @override
@@ -56,136 +79,250 @@ class _EnthusiastHomeScreenState extends State<EnthusiastHomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Image.asset('assets/images/logo.png',
-            height: 40), // English: Logo in App Bar
+        leading: IconButton(
+          icon: const Icon(Icons.menu_rounded, color: Colors.white),
+          onPressed: () {},
+        ),
+        title: Image.asset('assets/images/nexor.png', height: 36),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-          )
+          ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(25),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.lang == 'සිංහල'
-                  ? "නව සහාය ඉල්ලීම්"
-                  : (widget.lang == 'தமிழ்'
-                      ? "புதிய உதவி கோரிக்கைகள்"
-                      : "New Assistance Requests"),
-              style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
-            ),
-            const SizedBox(height: 20),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF00FF66)))
+          : _requests.isEmpty
+              ? _buildEmptyState()
+              : _buildRequestCard(_requests[_currentIndex]),
+    );
+  }
 
-            // --- REQUEST CARD (Screen 19 UI) ---
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF131A14),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Column(
-                children: [
-                  ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(30)),
-                    child: Image.network(_mockRequest['image'],
-                        height: 250, width: double.infinity, fit: BoxFit.cover),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _infoBadge(
-                                Icons.location_on, _mockRequest['distance']),
-                            _infoBadge(Icons.access_time, _mockRequest['time']),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          widget.lang == 'සිංහල'
-                              ? "යූසර්ගේ විස්තරය"
-                              : "User's Description",
-                          style: const TextStyle(
-                              color: Color(0xFF00FF66),
-                              fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          _mockRequest['description'],
-                          style: const TextStyle(
-                              color: Colors.white70, height: 1.5),
-                        ),
-                        const SizedBox(height: 30),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _btn(
-                                  widget.lang == 'සිංහල'
-                                      ? "ප්‍රතික්ෂේප කරන්න"
-                                      : "Reject",
-                                  Colors.white10,
-                                  Colors.white60,
-                                  () {}),
-                            ),
-                            const SizedBox(width: 15),
-                            Expanded(
-                              child: _btn(
-                                  widget.lang == 'සිංහල'
-                                      ? "පිළිගන්න"
-                                      : "Accept",
-                                  const Color(0xFF00FF66),
-                                  Colors.black,
-                                  _openMap),
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              ),
-            ),
-          ],
-        ),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.check_circle_outline_rounded,
+              color: Color(0xFF00FF66), size: 64),
+          const SizedBox(height: 20),
+          const Text('No Pending Requests',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('You\'re all caught up!',
+              style: TextStyle(color: Colors.white38)),
+          const SizedBox(height: 30),
+          TextButton(
+            onPressed: _loadRequests,
+            child: const Text('Refresh',
+                style: TextStyle(color: Color(0xFF00FF66))),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _infoBadge(IconData i, String t) {
+  Widget _buildRequestCard(Map<String, dynamic> req) {
+    final requests = _requests;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Request count indicator
+          if (requests.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                children: [
+                  Text('${_currentIndex + 1} of ${requests.length} requests',
+                      style:
+                          const TextStyle(color: Colors.white38, fontSize: 13)),
+                  const Spacer(),
+                  Row(
+                    children: List.generate(
+                      requests.length,
+                      (i) => Container(
+                        width: i == _currentIndex ? 20 : 6,
+                        height: 6,
+                        margin: const EdgeInsets.only(right: 4),
+                        decoration: BoxDecoration(
+                          color: i == _currentIndex
+                              ? const Color(0xFF00FF66)
+                              : Colors.white12,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          Text(
+              _tl('New Assistance Request', 'නව සහාය ඉල්ලීම',
+                  'புதிய உதவி கோரிக்கை'),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF131A14),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Snake / incident image
+                ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
+                  child: req['image_url'] != null
+                      ? Image.network(
+                          req['image_url'],
+                          height: 240,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                        )
+                      : _imagePlaceholder(),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Location + time
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _infoBadge(Icons.location_on_outlined,
+                              '${req['distance_km'] ?? '?'} km away'),
+                          _infoBadge(Icons.access_time_rounded,
+                              req['reported_at'] ?? 'Unknown time'),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(req['location_name'] ?? '',
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 13)),
+                      const SizedBox(height: 16),
+
+                      Text(
+                          _tl("User's Description", "යූසර්ගේ විස්තරය",
+                              "பயனர் விளக்கம்"),
+                          style: const TextStyle(
+                              color: Color(0xFF00FF66),
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(req['description'] ?? '',
+                          style: const TextStyle(
+                              color: Colors.white70, height: 1.5)),
+                      const SizedBox(height: 24),
+
+                      // Accept / Reject buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _btn(
+                              _tl('Reject', 'ප්‍රතික්ෂේප කරන්න', 'நிராகரி'),
+                              Colors.white10,
+                              Colors.white60,
+                              _isResponding ? null : () => _respond(false),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: _btn(
+                              _tl('Accept', 'පිළිගන්න', 'ஏற்று'),
+                              const Color(0xFF00FF66),
+                              Colors.black,
+                              _isResponding ? null : () => _respond(true),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Navigate between requests
+          if (requests.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: _currentIndex > 0
+                        ? () => setState(() => _currentIndex--)
+                        : null,
+                    child: const Text('← Prev',
+                        style: TextStyle(color: Colors.white38)),
+                  ),
+                  const SizedBox(width: 20),
+                  TextButton(
+                    onPressed: _currentIndex < requests.length - 1
+                        ? () => setState(() => _currentIndex++)
+                        : null,
+                    child: const Text('Next →',
+                        style: TextStyle(color: Colors.white38)),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _imagePlaceholder() {
+    return Container(
+      height: 240,
+      color: const Color(0xFF0A140A),
+      child: const Center(
+        child:
+            Icon(Icons.pest_control_rounded, color: Colors.white10, size: 60),
+      ),
+    );
+  }
+
+  Widget _infoBadge(IconData icon, String text) {
     return Row(
       children: [
-        Icon(i, size: 16, color: Colors.white38),
+        Icon(icon, size: 14, color: Colors.white38),
         const SizedBox(width: 5),
-        Text(t, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+        Text(text, style: const TextStyle(color: Colors.white38, fontSize: 12)),
       ],
     );
   }
 
-  Widget _btn(String label, Color bg, Color txt, VoidCallback onTap) {
+  Widget _btn(String label, Color bg, Color txtColor, VoidCallback? onTap) {
     return SizedBox(
-      height: 60,
+      height: 56,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: bg,
+          elevation: 0,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          elevation: 0,
         ),
         onPressed: onTap,
         child: Text(label,
-            style: TextStyle(color: txt, fontWeight: FontWeight.bold)),
+            style: TextStyle(color: txtColor, fontWeight: FontWeight.bold)),
       ),
     );
   }
