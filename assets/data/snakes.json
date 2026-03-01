@@ -1,0 +1,422 @@
+[
+  {
+    "id": "thith_polaga",
+    "names": { "en": "Russell's Viper", "si": "තිත් පොළඟා", "ta": "கண்ணாடி விரியன்" },
+    "scientific_name": "Daboia russelii",
+    "is_venomous": true,
+    "confidence": "94%",
+    "danger_level": { "en": "Highly Venomous", "si": "අතිශය විෂ සහිතයි", "ta": "மிகவும் நச்சுத்தன்மை வாய்ந்தது" },
+    "main_image": "assets/images/snakes/thith_polaga_main.jpg",
+    "stock_photos": ["assets/images/snakes/thith_1.jpg", "assets/images/snakes/thith_2.jpg"],
+    "details": {
+      "en": {
+        "about": "One of the most dangerous snakes in Sri Lanka. It has oval spots in three rows.",
+        "description": "Thick body with brown oval spots. Triangular head distinct from the neck.",
+        "habitat": "Found in grasslands, scrublands, and agricultural fields.",
+        "behavior": "Aggressive when threatened, makes a loud hissing sound.",
+        "diet": "Rodents like rats and mice.",
+        "similar_species": "Indian Python (juveniles)",
+        "first_aid": ["Calm the victim.", "Immobilize the limb.", "Rush to the nearest hospital."],
+        "donts": ["Do not cut the wound.", "Do not suck venom.", "Do not apply tourniquets."]
+      },
+      "si": {
+        "about": "ලංකාවේ මාරාන්තික සර්පයන්ගෙන් ප්‍රධානියෙකි. සිරුරේ විශාල දුඹුරු තිත් පේළි තුනක් ඇත.",
+        "description": "දුඹුරු පැහැති තිත් පේළි තුනක් සහිත මහත සිරුරක් ඇත. හිස ත්‍රිකෝණාකාර වේ.",
+        "habitat": "විවෘත තණබිම්, පඳුරු සහිත ප්‍රදේශ සහ ගොවිබිම් වල දක්නට ලැබේ.",
+        "behavior": "තර්ජනයක් වූ විට ඉතා කලබලකාරී වී මහ හඬින් පිඹින හඬක් නිකුත් කරයි.",
+        "diet": "මීයන් සහ කුඩා ක්ෂීරපායින්.",
+        "similar_species": "පිඹුරු පැටවුන්",
+        "first_aid": ["රෝගියාව සන්සුන් කරන්න.", "දෂ්ට කළ අවයවය නොසොල්වා තබන්න.", "වහාම රෝහල් ගත කරන්න."],
+        "donts": ["තුවාලය කපන්න එපා.", "විස උරා බොන්න එපා.", "තදින් වෙලන්න එපා."]
+      },
+      "ta": {
+        "about": "இலங்கையில் மிகவும் ஆபத்தான பாம்புகளில் ஒன்று. மூன்று வரிசைகளில் முட்டை வடிவ புள்ளிகள் கொண்டது.",
+        "description": "பழுப்பு நிற முட்டை வடிவ புள்ளிகள் கொண்ட தடித்த உடல். கழுத்திலிருந்து வேறுபட்ட முக்கோணத் தலை.",
+        "habitat": "புல்வெளிகள், புதர்கள் மற்றும் விவசாய நிலங்களில் காணப்படும்.",
+        "behavior": "அச்சுறுத்தப்படும் போது ஆக்ரோஷமானது, உரத்த சீறல் ஒலியை எழுப்பும்.",
+        "diet": "எலிகள் மற்றும் சிறிய பாலூட்டிகள்.",
+        "similar_species": "மலைப்பாம்பு குட்டிகள்",
+        "first_aid": ["பாதிக்கப்பட்டவரை அமைதிப்படுத்தவும்.", "பாதிக்கப்பட்ட பகுதியை அசையாமல் வைக்கவும்.", "அருகிலுள்ள மருத்துவமனைக்கு அழைத்துச் செல்லவும்."],
+        "donts": ["காயத்தை வெட்ட வேண்டாம்.", "நச்சினை உறிஞ்ச வேண்டாம்.", "கட்டுகளை இறுக்கமாக கட்ட வேண்டாம்."]
+      }
+    }
+  },
+  {
+    "id": "naya",
+    "names": { "en": "Indian Cobra", "si": "නයා", "ta": "நல்ல பாம்பு" },
+    "scientific_name": "Naja naja",
+    "is_venomous": true,
+    "confidence": "95%",
+    "danger_level": { "en": "Highly Venomous", "si": "අතිශය විෂ සහිතයි", "ta": "மிகவும் நச்சுத்தன்மை வாய்ந்தது" },
+    "main_image": "assets/images/snakes/naya_main.jpg",
+    "stock_photos": ["assets/images/snakes/naya_1.jpg"],
+    "details": {
+      "en": {
+        "about": "Highly venomous land snake recognizable by its hood.",
+        "description": "Large snake with a hood. Color varies from brown to black.",
+        "habitat": "Paddy fields, gardens, and areas near water.",
+        "behavior": "Spreads hood when threatened. Active day and night.",
+        "diet": "Rats, frogs, and other snakes.",
+        "similar_species": "Rat Snake",
+        "first_aid": ["Keep patient still.", "Immobilize the limb.", "Rush to hospital."],
+        "donts": ["Do not cut.", "Do not suck venom.", "Do not use herbal pastes."]
+      },
+      "si": {
+        "about": "පෙනය මගින් පහසුවෙන් හඳුනාගත හැකි විෂ අධික සර්පයෙකි.",
+        "description": "පෙනයක් සහිත විශාල සර්පයෙකි. වර්ණය කළු හෝ දුඹුරු විය හැක.",
+        "habitat": "කුඹුරු, ගෙවතු සහ ජලය ආසන්න ස්ථාන.",
+        "behavior": "තර්ජනයක් වූ විට පෙනය විහිදුවයි. දිවා රෑ දෙකෙහිම ක්‍රියාකාරී වේ.",
+        "diet": "මීයන්, ගෙම්බන් සහ අනෙකුත් සර්පයන්.",
+        "similar_species": "ගැරඬියා",
+        "first_aid": ["රෝගියා සන්සුන් කරන්න.", "අවයවය නොසොල්වා තබන්න.", "වහාම රෝහල් ගත කරන්න."],
+        "donts": ["තුවාලය කපන්න එපා.", "විස උරා බොන්න එපා.", "දේශීය බෙහෙත් වර්ග ගල්වන්න එපා."]
+      },
+      "ta": {
+        "about": "படம் எடுப்பதன் மூலம் அடையாளம் காணக்கூடிய மிகவும் நச்சுத்தன்மையுள்ள நிலப்பாம்பு.",
+        "description": "படம் கொண்ட பெரிய பாம்பு. நிறம் பழுப்பு முதல் கருப்பு வரை மாறுபடும்.",
+        "habitat": "வயல்வெளிகள், தோட்டங்கள் மற்றும் நீர் நிலைகளுக்கு அருகிலுள்ள பகுதிகள்.",
+        "behavior": "அச்சுறுத்தப்படும் போது படம் எடுக்கும். பகல் மற்றும் இரவு நேரங்களில் சுறுசுறுப்பாக இருக்கும்.",
+        "diet": "எலிகள், தவளைகள் மற்றும் பிற பாம்புகள்.",
+        "similar_species": "சாரை பாம்பு",
+        "first_aid": ["பாதிக்கப்பட்டவரை அமைதிப்படுத்தவும்.", "உறுப்பை அசையாமல் வைக்கவும்.", "மருத்துவமனைக்கு அழைத்துச் செல்லவும்."],
+        "donts": ["வெட்ட வேண்டாம்.", "நச்சினை உறிஞ்ச வேண்டாம்.", "கட்டுகளை இறுக்கமாக கட்ட வேண்டாம்."]
+      }
+    }
+  },
+  {
+    "id": "weli_polaga",
+    "names": { "en": "Saw-scaled Viper", "si": "වැලි පොළඟා", "ta": "சுருட்டை விரியன்" },
+    "scientific_name": "Echis carinatus",
+    "is_venomous": true,
+    "confidence": "91%",
+    "danger_level": { "en": "Highly Venomous", "si": "අතිශය විෂ සහිතයි", "ta": "மிகவும் நச்சுத்தன்மை வாய்ந்தது" },
+    "main_image": "assets/images/snakes/weli_main.jpg",
+    "stock_photos": [],
+    "details": {
+      "en": {
+        "about": "Small but highly toxic viper found in dry regions.",
+        "description": "Rough scales, bird-foot mark on head, small body.",
+        "habitat": "Dry sandy soil, coastal areas.",
+        "behavior": "Produces rasping sound by rubbing scales.",
+        "diet": "Lizards, scorpions, and small insects.",
+        "similar_species": "None",
+        "first_aid": ["Rush to hospital immediately.", "Immobilize the bitten area."],
+        "donts": ["Do not delay.", "Do not apply ice."]
+      },
+      "si": {
+        "about": "කුඩා නමුත් ඉතා විෂ සහිත මාරාන්තික සර්පයෙකි. වියළි කලාපයේ බහුලව දක්නට ලැබේ.",
+        "description": "රළු කොරල සහිතයි. හිස මත කුරුළු පා සලකුණක් වැනි සලකුණක් ඇත.",
+        "habitat": "ශුෂ්ක ප්‍රදේශ සහ වියළි වැලි සහිත පස.",
+        "behavior": "දඟර ගැසී කොරල එකිනෙක ඇතිල්ලීමෙන් හඬක් නිකුත් කරයි.",
+        "diet": "කටුස්සන්, ගෝනුස්සන් සහ කුඩා කෘමීන්.",
+        "similar_species": "නොමැත",
+        "first_aid": ["වහාම රෝහල් ගත කරන්න.", "දෂ්ට කළ ප්‍රදේශය නොසොල්වා තබන්න."],
+        "donts": ["කාලය නාස්ති කරන්න එපා.", "අයිස් තබන්න එපා."]
+      },
+      "ta": {
+        "about": "வறண்ட பகுதிகளில் காணப்படும் சிறிய ஆனால் அதிக நச்சுத்தன்மை கொண்ட விரியன் பாம்பு.",
+        "description": "சொரசொரப்பான செதில்கள், தலையில் பறவை பாத முத்திரை போன்ற சின்னம், சிறிய உடல்.",
+        "habitat": "மணல் மற்றும் வறண்ட பகுதிகள், கடலோரப் பகுதிகள்.",
+        "behavior": "செதில்களைத் தேய்ப்பதன் மூலம் உரத்த ஒலியை எழுப்பும்.",
+        "diet": "பல்லிகள், தேள்கள் மற்றும் சிறிய பூச்சிகள்.",
+        "similar_species": "ஏதுமில்லை",
+        "first_aid": ["உடனடியாக மருத்துவமனைக்குச் செல்லுங்கள்.", "பாதிக்கப்பட்ட பகுதியை அசையாமல் வைக்கவும்."],
+        "donts": ["தாமதிக்க வேண்டாம்.", "ஐஸ் கட்டிகளை வைக்க வேண்டாம்."]
+      }
+    }
+  },
+  {
+    "id": "pimbura",
+    "names": { "en": "Indian Python", "si": "පිඹුරා", "ta": "மலைப்பாம்பு" },
+    "scientific_name": "Python molurus",
+    "is_venomous": false,
+    "confidence": "97%",
+    "danger_level": { "en": "Non-Venomous", "si": "විෂ රහිතයි", "ta": "நச்சுத்தன்மையற்றது" },
+    "main_image": "assets/images/snakes/pimbura_main.jpg",
+    "stock_photos": [],
+    "details": {
+      "en": {
+        "about": "Largest snake in Sri Lanka. Non-venomous but powerful.",
+        "description": "Heavy body with beautiful mosaic patterns.",
+        "habitat": "Forests, swamps, and rocky areas.",
+        "behavior": "Slow moving, kills by constriction.",
+        "diet": "Mammals and birds.",
+        "similar_species": "Russell's Viper (juveniles)",
+        "first_aid": ["Clean the bite area with soap and water.", "Apply a dry dressing."],
+        "donts": ["No anti-venom needed.", "Do not panic."]
+      },
+      "si": {
+        "about": "ලංකාවේ වෙසෙන විශාලම සර්පයායි. විෂ රහිත වුවද ඉතා බලවත් සර්පයෙකි.",
+        "description": "බරැති ශරීරයක් ඇති අතර ලස්සන මොසෙයික් රටා ඇත.",
+        "habitat": "වනාන්තර, වගුරු බිම් සහ ගල් ගුහා.",
+        "behavior": "සෙමින් ගමන් කරයි, ගොදුර වෙළා මරා දමයි.",
+        "diet": "ක්ෂීරපායින් සහ කුරුල්ලන්.",
+        "similar_species": "තිත් පොළඟා (පැටවුන්)",
+        "first_aid": ["තුවාලය සබන් සහ ජලයෙන් පිරිසිදු කරන්න.", "වියළි වෙලුමක් යොදන්න."],
+        "donts": ["විෂ නාශක අවශ්‍ය නොවේ.", "බිය නොවන්න."]
+      },
+      "ta": {
+        "about": "இலங்கையின் மிகப்பெரிய பாம்பு. நச்சுத்தன்மையற்றது ஆனால் மிகவும் வலிமையானது.",
+        "description": "அழகான அமைப்புகளைக் கொண்ட கனமான உடல்.",
+        "habitat": "காடுகள், சதுப்பு நிலங்கள் மற்றும் பாறை பகுதிகள்.",
+        "behavior": "மெதுவாக நகரும், இரையை சுருட்டி நெரித்துக் கொல்லும்.",
+        "diet": "பாலூட்டிகள் மற்றும் பறவைகள்.",
+        "similar_species": "கண்ணாடி விரியன் குட்டிகள்",
+        "first_aid": ["காயத்தைச் சோப்பு மற்றும் தண்ணீரால் சுத்தம் செய்யுங்கள்.", "உலர்ந்த கட்டு போடவும்."],
+        "donts": ["நச்சு முறிவு மருந்து தேவையில்லை.", "பயப்பட வேண்டாம்."]
+      }
+    }
+  },
+  {
+    "id": "kunakatuwa",
+    "names": { "en": "Hump-nosed Viper", "si": "කුණකටුවා", "ta": "சுருட்டை விரியன்" },
+    "scientific_name": "Hypnale hypnale",
+    "is_venomous": true,
+    "confidence": "92%",
+    "danger_level": { "en": "Venomous", "si": "විෂ සහිතයි", "ta": "நச்சுத்தன்மை வாய்ந்தது" },
+    "main_image": "assets/images/kuna_main.jpg",
+    "stock_photos": [],
+    "details": {
+      "en": {
+        "about": "Most common cause of snakebite in Sri Lanka.",
+        "description": "Pointed snout, brown or grey patterns.",
+        "habitat": "Gardens, plantations, and leaf litter.",
+        "behavior": "Vibrates tail when disturbed. Camouflages well.",
+        "diet": "Lizards, frogs, and small mammals.",
+        "similar_species": "Saw-scaled Viper",
+        "first_aid": ["Keep the limb still.", "Seek medical advice immediately."],
+        "donts": ["Do not panic.", "Do not use a tourniquet."]
+      },
+      "si": {
+        "about": "ලංකාවේ බහුලවම සර්ප දෂ්ටනයන් සිදු කරන සර්පයායි.",
+        "description": "හිස උල් හැඩයක් ගනී. වර්ණය දුඹුරු හෝ අළු රටා සහිතයි.",
+        "habitat": "ගෙවතු, වතු සහ වියළි කොළ රොඩු අතර.",
+        "behavior": "කලබල වූ විට වලිගය වේගයෙන් සලයි.",
+        "diet": "කටුස්සන්, ගෙම්බන් සහ කුඩා ක්ෂීරපායින්.",
+        "similar_species": "වැලි පොළඟා",
+        "first_aid": ["තුවාලය පිරිසිදු කරන්න.", "වහාම වෛද්‍ය උපදෙස් ලබාගන්න."],
+        "donts": ["නොසැලකිලිමත් නොවන්න.", "තදින් වෙලන්න එපා."]
+      },
+      "ta": {
+        "about": "இலங்கையில் பாம்புக்கடிகளுக்கு மிகவும் பொதுவான காரணம்.",
+        "description": "கூர்மையான மூக்கு, பழுப்பு அல்லது சாம்பல் நிற அமைப்புகள்.",
+        "habitat": "தோட்டங்கள், தோட்டங்கள் மற்றும் சருகுகள்.",
+        "behavior": "தொந்தரவு செய்யும்போது வாலை ஆட்டும். சூழலுடன் ஒட்டி மறைந்திருக்கும்.",
+        "diet": "பல்லிகள், தவளைகள் மற்றும் சிறிய பாலூட்டிகள்.",
+        "similar_species": "சுருட்டை விரியன்",
+        "first_aid": ["உறுப்பை அசையாமல் வைக்கவும்.", "உடனடியாக மருத்துவ உதவியை நாடுங்கள்."],
+        "donts": ["பயப்பட வேண்டாம்.", "கட்டுகளை இறுக்கமாக கட்ட வேண்டாம்."]
+      }
+    }
+  },
+  {
+    "id": "thel_karawela",
+    "names": { "en": "Common Krait", "si": "තෙල් කරවැලා", "ta": "கட்டுவிரியன்" },
+    "scientific_name": "Bungarus caeruleus",
+    "is_venomous": true,
+    "confidence": "96%",
+    "danger_level": { "en": "Highly Venomous", "si": "අතිශය විෂ සහිතයි", "ta": "மிகவும் நச்சுத்தன்மை வாய்ந்தது" },
+    "main_image": "assets/images/snakes/thel_main.jpg",
+    "stock_photos": [],
+    "details": {
+      "en": {
+        "about": "The most toxic land snake in Sri Lanka.",
+        "description": "Shiny blue-black body with white rings in pairs.",
+        "habitat": "Dry zones, often near human homes.",
+        "behavior": "Active at night. Bites are often painless.",
+        "diet": "Other snakes, rodents, and lizards.",
+        "similar_species": "Wolf Snake (non-venomous)",
+        "first_aid": ["Watch breathing closely.", "Rush to hospital immediately."],
+        "donts": ["Do not delay even if no pain.", "Do not let the victim sleep."]
+      },
+      "si": {
+        "about": "ලංකාවේ ගොඩබිම වෙසෙන විෂ අධිකම සර්පයායි.",
+        "description": "දිලිසෙන නිල්-කළු සිරුරේ යුගල වශයෙන් සුදු වළලු ඇත.",
+        "habitat": "පහතරට වියළි කලාපයේ නිවාස ආසන්නයේ.",
+        "behavior": "රාත්‍රියේදී ඉතා ක්‍රියාශීලී වේ. දෂ්ට කිරීම වේදනා රහිත විය හැක.",
+        "diet": "වෙනත් සර්පයන්, මීයන් සහ කටුස්සන්.",
+        "similar_species": "දුන් කරවැලා (විෂ රහිත)",
+        "first_aid": ["හුස්ම ගැනීම ගැන අවධානයෙන් සිටින්න.", "වහාම රෝහල් ගත කරන්න."],
+        "donts": ["වේදනාවක් නැතැයි ප්‍රමාද නොවන්න.", "රෝගියාට නිදා ගැනීමට ඉඩ නොදෙන්න."]
+      },
+      "ta": {
+        "about": "இலங்கையில் நிலப்பரப்பில் வாழும் மிகவும் நச்சுத்தன்மை வாய்ந்த பாம்பு.",
+        "description": "வெள்ளை வளையங்களைக் கொண்ட பளபளப்பான நீல-கருப்பு உடல்.",
+        "habitat": "வீடுகளுக்கு அருகிலுள்ள வறண்ட பகுதிகள்.",
+        "behavior": "இரவில் சுறுசுறுப்பாக இருக்கும். கடித்தால் வலி தெரியாமல் இருக்கலாம்.",
+        "diet": "பிற பாம்புகள், எலிகள் மற்றும் பல்லிகள்.",
+        "similar_species": "ஓநாய் பாம்பு (நச்சற்றது)",
+        "first_aid": ["சுவாசத்தை உன்னிப்பாகக் கவனிக்கவும்.", "உடனடியாக மருத்துவமனைக்குச் செல்லுங்கள்."],
+        "donts": ["வலி இல்லை என்றாலும் தாமதிக்க வேண்டாம்.", "பாதிக்கப்பட்டவரை தூங்க விட வேண்டாம்."]
+      }
+    }
+  },
+  {
+    "id": "mudu_karawela",
+    "names": { "en": "Ceylon Krait", "si": "මුදු කරවැලා", "ta": "இலங்கை கட்டுவிரியன்" },
+    "scientific_name": "Bungarus ceylonicus",
+    "is_venomous": true,
+    "confidence": "93%",
+    "danger_level": { "en": "Highly Venomous", "si": "අතිශය විෂ සහිතයි", "ta": "மிகவும் நச்சுத்தன்மை வாய்ந்தது" },
+    "main_image": "assets/images/snakes/mudu_main.jpg",
+    "stock_photos": [],
+    "details": {
+      "en": {
+        "about": "Endemic highly venomous snake of Sri Lanka.",
+        "description": "Black with thin white rings, very shy.",
+        "habitat": "Wet zone forests and plantations.",
+        "behavior": "Nocturnal, hides head under body.",
+        "diet": "Snakes, lizards, and skinks.",
+        "similar_species": "Wolf Snake",
+        "first_aid": ["Transfer to hospital immediately.", "Keep victim warm and still."],
+        "donts": ["Do not waste time.", "Do not give any food or drink."]
+      },
+      "si": {
+        "about": "ශ්‍රී ලංකාවට ආවේණික විෂ අධික සර්පයෙකි.",
+        "description": "කළු සිරුරේ තනි සුදු වළලු ඇත. ඉතා ලැජ්ජාශීලී සර්පයෙකි.",
+        "habitat": "තෙත් කලාපීය වනාන්තර සහ වතු.",
+        "behavior": "රාත්‍රියේදී ක්‍රියාශීලී වේ. හිස සිරුර යට සඟවා ගනී.",
+        "diet": "සර්පයන් සහ හිකනලුන්.",
+        "similar_species": "දුන් කරවැලා",
+        "first_aid": ["වහාම රෝහල් ගත කරන්න.", "රෝගියා නිශ්චලව තබන්න."],
+        "donts": ["දේශීය අත්බෙහෙත් පාවිච්චි කරන්න එපා.", "කෑම හෝ බීම ලබා නොදෙන්න."]
+      },
+      "ta": {
+        "about": "இலங்கைக்கு மட்டுமே உரித்தான மிகவும் நச்சுத்தன்மையுள்ள பாம்பு.",
+        "description": "வெள்ளை வளையங்களைக் கொண்ட கருப்பு உடல்.",
+        "habitat": "ஈர மண்டல காடுகள் மற்றும் தோட்டங்கள்.",
+        "behavior": "இரவில் நடமாடும், தலையை உடலுக்கு அடியில் மறைத்துக்கொள்ளும்.",
+        "diet": "பாம்புகள் மற்றும் பல்லிகள்.",
+        "similar_species": "ஓநாய் பாம்பு",
+        "first_aid": ["உடனடியாக மருத்துவமனைக்கு அழைத்துச் செல்லுங்கள்.", "பாதிக்கப்பட்டவரை அசையாமல் வைத்திருங்கள்."],
+        "donts": ["நேரத்தை வீணாக்காதீர்கள்.", "உணவு அல்லது பானம் கொடுக்க வேண்டாம்."]
+      }
+    }
+  },
+  {
+    "id": "garadiya",
+    "names": { "en": "Rat Snake", "si": "ගැරඬියා", "ta": "சாரை பாம்பு" },
+    "scientific_name": "Ptyas mucosa",
+    "is_venomous": false,
+    "confidence": "98%",
+    "danger_level": { "en": "Non-Venomous", "si": "විෂ රහිතයි", "ta": "நச்சுத்தன்மையற்றது" },
+    "main_image": "assets/images/snakes/garadiya_main.jpg",
+    "stock_photos": [],
+    "details": {
+      "en": {
+        "about": "Harmless snake that eats rats. Very common in Sri Lanka.",
+        "description": "Large eyes, brownish scales, very fast.",
+        "habitat": "Gardens, farms, and urban areas.",
+        "behavior": "Escapes quickly when seen. Non-aggressive.",
+        "diet": "Rats, frogs, and small birds.",
+        "similar_species": "Indian Cobra (from a distance)",
+        "first_aid": ["Clean the bite with soap and water.", "Reassurance is key."],
+        "donts": ["No anti-venom medicine needed.", "Do not kill the snake."]
+      },
+      "si": {
+        "about": "විෂ රහිත, මිනිසාට හානිකර නොවන අහිංසක සර්පයෙකි. මීයන් පාලනයට උදව් වේ.",
+        "description": "විශාල ඇස් සහිතයි. පැහැය දුඹුරු පැහැයට හුරුය. ඉතා වේගවත්ය.",
+        "habitat": "නාගරික සහ ග්‍රාමීය ප්‍රදේශ, ගෙවතු සහ කුඹුරු.",
+        "behavior": "මිනිසුන් දුටු විට ඉක්මනින් පලා යයි.",
+        "diet": "මීයන් සහ ගෙම්බන්.",
+        "similar_species": "නයා (දුර සිට බලන විට)",
+        "first_aid": ["තුවාලය සබන් සහ ජලයෙන් පිරිසිදු කරන්න.", "බිය නොවන්න."],
+        "donts": ["විෂ නාශක අවශ්‍ය නොවේ.", "සර්පයා මරන්න එපා."]
+      },
+      "ta": {
+        "about": "எலிகளை உண்ணும் நச்சுத்தன்மையற்ற பாம்பு. இலங்கையில் மிகவும் பொதுவானது.",
+        "description": "பெரிய கண்கள், பழுப்பு நிற செதில்கள், மிக வேகமாக நகரக்கூடியது.",
+        "habitat": "தோட்டங்கள், பண்ணைகள் மற்றும் நகர்ப்புறங்கள்.",
+        "behavior": "மனிதர்களைக் கண்டால் வேகமாகத் தப்பித்து ஓடும்.",
+        "diet": "எலிகள், தவளைகள் மற்றும் சிறிய பறவைகள்.",
+        "similar_species": "நல்ல பாம்பு",
+        "first_aid": ["காயத்தைச் சோப்பு மற்றும் தண்ணீரால் சுத்தம் செய்யுங்கள்."],
+        "donts": ["மருந்து தேவையில்லை.", "பாம்பைக் கொல்ல வேண்டாம்."]
+      }
+    }
+  },
+  {
+    "id": "ahatulla",
+    "names": { "en": "Green Vine Snake", "si": "ඇහැටුල්ලා", "ta": "பச்சை பாம்பு" },
+    "scientific_name": "Ahaetulla nasuta",
+    "is_venomous": true,
+    "confidence": "94%",
+    "danger_level": { "en": "Mildly Venomous", "si": "සුළු විෂ සහිතයි", "ta": "குறைந்த நச்சுத்தன்மை" },
+    "main_image": "assets/images/snakes/ahatulla_main.jpg",
+    "stock_photos": [],
+    "details": {
+      "en": {
+        "about": "Arboreal snake with a pointed snout. Common in shrubs.",
+        "description": "Slender green body, horizontal pupils.",
+        "habitat": "Trees and bushes in gardens and forests.",
+        "behavior": "Moves slowly, can strike at eyes. Very camouflaged.",
+        "diet": "Lizards and frogs.",
+        "similar_species": "Green Pit Viper",
+        "first_aid": ["Wash with soap and water.", "Monitor for allergic reactions."],
+        "donts": ["Do not worry unnecessarily.", "Do not use traditional medicine."]
+      },
+      "si": {
+        "about": "ගස් මත වසන සිහින් කොළ පැහැති සර්පයෙකි. හොටක් වැනි උල් වූ මුඛයක් ඇත.",
+        "description": "සිහින් ශරීරයක් ඇත. ඇස් වල කණීනිකාව තිරස්ව පිහිටයි.",
+        "habitat": "පඳුරු සහ ගස් මත.",
+        "behavior": "සෙමින් ගමන් කරයි. ඇස් වලට පහර දීමට උත්සාහ කරයි.",
+        "diet": "කටුස්සන් සහ ගෙම්බන්.",
+        "similar_species": "පළා පොළඟා",
+        "first_aid": ["සබන් සහ ජලයෙන් තුවාලය පිරිසිදු කරන්න.", "අසාත්මිකතා ඇත්නම් වෛද්‍ය උදව් පතන්න."],
+        "donts": ["අනවශ්‍ය ලෙස බිය නොවන්න.", "අත්බෙහෙත් පාවිච්චි කරන්න එපා."]
+      },
+      "ta": {
+        "about": "மரங்களில் வாழும் பச்சை நிறப் பாம்பு. கூர்மையான மூக்கு கொண்டது.",
+        "description": "மெல்லிய பச்சை உடல், கிடைமட்டக் கண்கள்.",
+        "habitat": "தோட்டங்கள் மற்றும் காடுகளில் உள்ள மரங்கள் மற்றும் புதர்கள்.",
+        "behavior": "மெதுவாக நகரும், கண்களைத் தாக்கக்கூடும்.",
+        "diet": "பல்லிகள் மற்றும் தவளைகள்.",
+        "similar_species": "பச்சை குழி விரியன்",
+        "first_aid": ["சோப்பு மற்றும் தண்ணீரால் சுத்தம் செய்யவும்.", "ஒவ்வாமை ஏற்படுகிறதா என்று கவனிக்கவும்."],
+        "donts": ["தேவையில்லாமல் பயப்பட வேண்டாம்."]
+      }
+    }
+  },
+  {
+    "id": "le_mapila",
+    "names": { "en": "Forsten's Cat Snake", "si": "ලේ මාපිලා", "ta": "பூனைப் பாம்பு" },
+    "scientific_name": "Boiga forsteni",
+    "is_venomous": true,
+    "confidence": "88%",
+    "danger_level": { "en": "Mildly Venomous", "si": "සුළු විෂ සහිතයි", "ta": "குறைந்த நச்சுத்தன்மை" },
+    "main_image": "assets/images/snakes/mapila_main.jpg",
+    "stock_photos": [],
+    "details": {
+      "en": {
+        "about": "Large cat snake, active at night. Common in Sri Lanka.",
+        "description": "Large head, cat-like eyes with vertical slits.",
+        "habitat": "Tree hollows, forests, and residential areas.",
+        "behavior": "Aggressive and coils when cornered. Can bite repeatedly.",
+        "diet": "Birds, bats, and lizards.",
+        "similar_species": "Python (juveniles)",
+        "first_aid": ["Seek medical advice if swelling occurs.", "Clean the bite area."],
+        "donts": ["Do not assume it's harmless.", "Do not panic."]
+      },
+      "si": {
+        "about": "රාත්‍රියේ ක්‍රියාශීලී වන විශාල මාපිල් වර්ගයකි. ලංකාවේ බහුලව දක්නට ලැබේ.",
+        "description": "හිස විශාලය, බළල් ඇස් වලට සමාන ඇස් ඇත.",
+        "habitat": "ගස් බෙන, වනාන්තර සහ නිවාස ආශ්‍රිතව.",
+        "behavior": "කලබල වූ විට පහර දීමට සැරසෙයි. කිහිපවරක් දෂ්ට කළ හැක.",
+        "diet": "කුරුල්ලන්, වවුලන් සහ කටුස්සන්.",
+        "similar_species": "පිඹුරු පැටවුන්",
+        "first_aid": ["ඉදිමීමක් ඇති වුවහොත් වෛද්‍ය උපදෙස් පතන්න.", "තුවාලය පිරිසිදු කරන්න."],
+        "donts": ["එය සම්පූර්ණයෙන්ම හානිකර නොවන බව නොසිතන්න.", "බිය නොවන්න."]
+      },
+      "ta": {
+        "about": "இரவில் நடமாடும் ஒரு பெரிய வகை பூனைப் பாம்பு. இலங்கையில் பரவலாகக் காணப்படுகிறது.",
+        "description": "பெரிய தலை, செங்குத்தான பூனை போன்ற கண்கள்.",
+        "habitat": "மரப்பொந்துகள் மற்றும் காடுகள்.",
+        "behavior": "அச்சுறுத்தப்படும்போது ஆக்ரோஷமாக இருக்கும்.",
+        "diet": "பறவைகள், வௌவால்கள் மற்றும் பல்லிகள்.",
+        "similar_species": "மலைப்பாம்பு குட்டிகள்",
+        "first_aid": ["மருத்துவ உதவியை நாடுங்கள்.", "காயத்தைச் சுத்தம் செய்யுங்கள்."],
+        "donts": ["அசட்டையாக இருக்க வேண்டாம்."]
+      }
+    }
+  }
+]

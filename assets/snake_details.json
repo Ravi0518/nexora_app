@@ -1,0 +1,37 @@
+{
+  "Ahaetulla": {
+    "scientific": "Ahaetulla nasuta",
+    "desc": "Long, slender green snake with a pointed snout. Often found in shrubs.",
+    "symptoms": "Mild swelling and pain. Usually not fatal to humans."
+  },
+  "Common Krait": {
+    "scientific": "Bungarus caeruleus",
+    "desc": "Highly venomous nocturnal snake with white crossbands on a dark body.",
+    "symptoms": "Neurotoxic: Abdominal pain, blindness, and respiratory failure."
+  },
+  "Common Rat Snake": {
+    "scientific": "Ptyas mucosa",
+    "desc": "Non-venomous, fast-moving snake often found near human dwellings.",
+    "symptoms": "Non-venomous. Bites may cause minor injury but no poisoning."
+  },
+  "Indian cobra": {
+    "scientific": "Naja naja",
+    "desc": "Spectacled cobra. Famous for its hood and potent neurotoxic venom.",
+    "symptoms": "Severe paralysis and respiratory arrest within minutes."
+  },
+  "Indian python": {
+    "scientific": "Python molurus",
+    "desc": "Large, slow-moving constrictor. Non-venomous but powerful.",
+    "symptoms": "Bite can be painful due to large teeth; no venom."
+  },
+  "Mudu Karawala": {
+    "scientific": "Bungarus ceylonicus",
+    "desc": "Endemic to Sri Lanka. Highly venomous and active at night.",
+    "symptoms": "Neurological failure and muscle paralysis."
+  },
+  "Russell's viper": {
+    "scientific": "Daboia russelii",
+    "desc": "Responsible for most fatal bites in Sri Lanka. Very aggressive.",
+    "symptoms": "Haemotoxic: Internal bleeding, kidney failure, and tissue death."
+  }
+}
