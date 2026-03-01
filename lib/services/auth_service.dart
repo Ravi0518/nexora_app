@@ -20,7 +20,11 @@ class AuthService {
         body: jsonEncode({'email': email}),
       );
 
-      return jsonDecode(response.body);
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200 && data['success'] == true,
+        'message': data['message'] ?? 'Failed to send OTP',
+      };
     } catch (e) {
       return {'success': false, 'message': 'Connection failed: $e'};
     }
@@ -30,85 +34,89 @@ class AuthService {
   Future<Map<String, dynamic>> verifyAndRegister(
       Map<String, String> userData, String otp) async {
     try {
+      final Map<String, dynamic> payload = {
+        'fname': userData['fname'],
+        'lname': 'NexoraUser',
+        'email': userData['email'],
+        'password': userData['password'],
+        'role': userData['role'],
+        'otp': otp,
+      };
+
+      if (userData['role'] == 'enthusiast') {
+        payload['phone'] = userData['phone'];
+        payload['affiliation'] = userData['org'];
+
+        // Convert exp to int
+        int expYears = 0;
+        if (userData['exp'] != null && userData['exp']!.isNotEmpty) {
+          expYears = int.tryParse(userData['exp']!) ?? 0;
+        }
+        payload['experience_years'] = expYears;
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/verify-register'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: jsonEncode({
-          'fname': userData['fname'],
-          'email': userData['email'],
-          'password': userData['password'],
-          'role': userData['role'],
-          'otp': otp,
-        }),
+        body: jsonEncode(payload),
       );
 
-      final data = jsonDecode(response.body);
+      try {
+        final data = jsonDecode(response.body);
 
-      if (response.statusCode == 201 && data['success'] == true) {
-        // Optional: Save token immediately if you want auto-login
-        // final prefs = await SharedPreferences.getInstance();
-        // await prefs.setString('token', data['token']);
-        return {'success': true, 'message': data['message']};
+        if (response.statusCode == 201 && data['success'] == true) {
+          final prefs = await SharedPreferences.getInstance();
+          if (data['token'] != null) {
+            await prefs.setString('token', data['token']);
+          }
+          await prefs.setString('email', userData['email'] ?? '');
+          await prefs.setString('role', userData['role'] ?? 'user');
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Account created.'
+          };
+        }
+
+        return {
+          'success': false,
+          'message':
+              data['message'] ?? 'Registration failed (${response.statusCode})'
+        };
+      } catch (e) {
+        final preview = response.body.length > 50
+            ? '${response.body.substring(0, 50)}...'
+            : response.body;
+        return {
+          'success': false,
+          'message': 'Server Error (${response.statusCode}): $preview'
+        };
       }
-
-      return {
-        'success': false,
-        'message': data['message'] ?? 'Registration failed'
-      };
     } catch (e) {
-      return {'success': false, 'message': 'Server error: $e'};
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
-  // ---------------------------------------------------------------------------
-  // 1. AUTHENTICATION (Registration & Login)
-  // ---------------------------------------------------------------------------
 
-  /// Registers a new user with full error handling for SRS Requirement 03.
-  Future<Map<String, dynamic>> register(
-      String fname, String email, String password, String role) async {
+  /// STEP 3: Resend Verification (for previously registered but unverified)
+  Future<Map<String, dynamic>> resendEmailVerification(String token) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/register'),
+        Uri.parse('$baseUrl/email/resend'),
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token'
         },
-        body: jsonEncode({
-          'fname': fname,
-          'lname': 'NexoraUser', // Required by DB Schema
-          'email': email,
-          'password': password,
-          'password_confirmation': password, // Required by Laravel Validation
-          'role': role,
-        }),
       );
-
       final data = jsonDecode(response.body);
-
-      if (response.statusCode == 201) {
-        return {'success': true, 'message': 'Account created successfully!'};
-      }
-      // Handle Duplicate Email (Requirement 03)
-      else if (response.statusCode == 409 ||
-          (response.statusCode == 422 && data['errors']?['email'] != null)) {
-        return {
-          'success': false,
-          'message': 'This email is already registered.'
-        };
-      } else {
-        return {
-          'success': false,
-          'message': data['message'] ?? 'Registration failed.'
-        };
-      }
-    } catch (e) {
       return {
-        'success': false,
-        'message': 'Network Error: Cannot reach server.'
+        'success': response.statusCode == 200,
+        'message': data['message'] ?? 'Failed to resend'
       };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 

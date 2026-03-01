@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:io';
+import '../services/location_service.dart';
+import '../services/nexora_api_service.dart';
 
 class ReportIncidentScreen extends StatefulWidget {
   const ReportIncidentScreen({super.key});
@@ -15,8 +17,73 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
   File? _image;
   final _descriptionController = TextEditingController();
 
-  // Default Map Position (Mihintale)
-  static const LatLng _incidentLocation = LatLng(8.3444, 80.5024);
+  bool _isLoadingLocation = true;
+  bool _isSubmitting = false;
+  LatLng? _currentLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocation();
+  }
+
+  Future<void> _fetchLocation() async {
+    final pos = await LocationService.getCurrentLocation();
+    if (mounted) {
+      setState(() {
+        if (pos != null) {
+          _currentLocation = LatLng(pos.latitude, pos.longitude);
+        }
+        _isLoadingLocation = false;
+      });
+    }
+  }
+
+  Future<void> _submitReport() async {
+    if (_image == null ||
+        _descriptionController.text.trim().isEmpty ||
+        _currentLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Please provide a photo, description, and wait for location to load.')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    // Get a reversed geocoded address or just send coordinates as string if we don't have a package for it
+    final locName =
+        "Lat: ${_currentLocation!.latitude.toStringAsFixed(4)}, Lng: ${_currentLocation!.longitude.toStringAsFixed(4)}";
+
+    final res = await NexoraApiService.submitIncident(
+      type: _selectedType,
+      description: _descriptionController.text.trim(),
+      locationName: locName,
+      lat: _currentLocation!.latitude,
+      lng: _currentLocation!.longitude,
+      imagePath: _image!.path,
+    );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (res['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Report submitted successfully!'),
+            backgroundColor: Color(0xFF00FF66)),
+      );
+      Navigator.pop(context); // Go back after report
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Failed to submit report.'),
+            backgroundColor: Colors.redAccent),
+      );
+    }
+  }
 
   // කැමරාවෙන් පින්තූරයක් ගැනීම
   Future<void> _pickImage() async {
@@ -32,7 +99,8 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0A120A),
       appBar: AppBar(
-        title: const Text("Report Incident", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Report Incident",
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -42,7 +110,8 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. INCIDENT TYPE SELECTOR
-            const Text("Type of Incident", style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const Text("Type of Incident",
+                style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -54,7 +123,8 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
             const SizedBox(height: 30),
 
             // 2. PHOTO UPLOAD SECTION
-            const Text("Photo", style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const Text("Photo",
+                style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 12),
             GestureDetector(
               onTap: _pickImage,
@@ -64,25 +134,35 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF1A1F1A),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white10, style: BorderStyle.solid),
+                  border: Border.all(
+                      color: Colors.white10, style: BorderStyle.solid),
                 ),
                 child: _image == null
                     ? const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_a_photo, color: Color(0xFF00FF66), size: 40),
-                    SizedBox(height: 10),
-                    Text("Tap to Add Photo", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text("Upload an image of the snake", style: TextStyle(color: Colors.white38, fontSize: 12)),
-                  ],
-                )
-                    : ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.file(_image!, fit: BoxFit.cover)),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_a_photo,
+                              color: Color(0xFF00FF66), size: 40),
+                          SizedBox(height: 10),
+                          Text("Tap to Add Photo",
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
+                          Text("Upload an image of the snake",
+                              style: TextStyle(
+                                  color: Colors.white38, fontSize: 12)),
+                        ],
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.file(_image!, fit: BoxFit.cover)),
               ),
             ),
             const SizedBox(height: 30),
 
             // 3. DESCRIPTION FIELD
-            const Text("Description", style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const Text("Description",
+                style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 12),
             TextField(
               controller: _descriptionController,
@@ -93,28 +173,50 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                 hintStyle: const TextStyle(color: Colors.white24),
                 filled: true,
                 fillColor: const Color(0xFF1A1F1A),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 30),
 
             // 4. INCIDENT LOCATION (MAP PREVIEW)
-            const Text("Incident Location", style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const Text("Incident Location",
+                style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 12),
             Container(
               height: 200,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)),
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white10)),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: const GoogleMap(
-                  initialCameraPosition: CameraPosition(target: _incidentLocation, zoom: 15),
-                  liteModeEnabled: true, // Static feel as in UI
-                  myLocationEnabled: false,
-                ),
+                child: _isLoadingLocation
+                    ? const Center(
+                        child:
+                            CircularProgressIndicator(color: Color(0xFF00FF66)))
+                    : _currentLocation == null
+                        ? const Center(
+                            child: Text('Could not fetch location',
+                                style: TextStyle(color: Colors.white38)))
+                        : GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                                target: _currentLocation!, zoom: 15),
+                            markers: {
+                              Marker(
+                                  markerId: const MarkerId('incident'),
+                                  position: _currentLocation!)
+                            },
+                            myLocationEnabled: false,
+                            zoomControlsEnabled: false,
+                          ),
               ),
             ),
             const SizedBox(height: 10),
-            const Text("📍 123 Main St, Mihintale (Automatically Captured)", style: TextStyle(color: Colors.white38, fontSize: 12)),
+            if (_currentLocation != null)
+              Text(
+                  "📍 ${_currentLocation!.latitude.toStringAsFixed(4)}, ${_currentLocation!.longitude.toStringAsFixed(4)} (GPS)",
+                  style: const TextStyle(color: Colors.white38, fontSize: 12)),
 
             const SizedBox(height: 40),
 
@@ -123,12 +225,17 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00FF66),
                 minimumSize: const Size(double.infinity, 60),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
               ),
-              onPressed: () {
-                // Logic to send data to Laravel API
-              },
-              child: const Text("Submit Report", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+              onPressed: _isSubmitting ? null : _submitReport,
+              child: _isSubmitting
+                  ? const CircularProgressIndicator(color: Colors.black)
+                  : const Text("Submit Report",
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18)),
             ),
             const SizedBox(height: 40),
           ],
@@ -145,16 +252,22 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 15),
           decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.1) : const Color(0xFF1A1F1A),
+            color: isSelected
+                ? color.withValues(alpha: 0.1)
+                : const Color(0xFF1A1F1A),
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: isSelected ? color : Colors.transparent, width: 2),
+            border: Border.all(
+                color: isSelected ? color : Colors.transparent, width: 2),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: isSelected ? color : Colors.white38, size: 20),
               const SizedBox(width: 8),
-              Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.white38, fontWeight: FontWeight.bold)),
+              Text(label,
+                  style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white38,
+                      fontWeight: FontWeight.bold)),
             ],
           ),
         ),

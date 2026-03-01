@@ -28,8 +28,11 @@ class _OTPScreenState extends State<OTPScreen> {
     }
 
     setState(() => _isVerifying = true);
+
     final res = await _auth.verifyAndRegister(
-        widget.userData, _otpController.text.trim());
+      widget.userData,
+      _otpController.text.trim(),
+    );
     if (!mounted) return;
     setState(() => _isVerifying = false);
 
@@ -115,6 +118,34 @@ class _OTPScreenState extends State<OTPScreen> {
                             fontWeight: FontWeight.bold,
                             fontSize: 16),
                       ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: _isVerifying
+                  ? null
+                  : () async {
+                      // Call the send-otp route again since account isn't created yet
+                      final email = widget.userData['email'] ?? '';
+                      if (email.isNotEmpty) {
+                        await _auth.sendOTP(email);
+                      }
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(_t('otp_resent')),
+                          backgroundColor: const Color(0xFF00FF66),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF00FF66),
+              ),
+              child: Text(
+                _t('resend_otp'),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ),
           ],

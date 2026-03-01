@@ -38,6 +38,15 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     _loadData();
   }
 
+  @override
+  void didUpdateWidget(UserHomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Rebuild when the parent passes a new language
+    if (oldWidget.lang != widget.lang) {
+      setState(() {});
+    }
+  }
+
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     // Try fetching fresh profile from API
@@ -84,7 +93,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   Expanded(
                       child: _buildTileCard(
                     title: _t('my_collection'),
-                    subtitle: 'View past identifications',
+                    subtitle: _t('view_past_identifications'),
                     imagePath: null,
                     accent: const Color(0xFF1A2E1F),
                     onTap: () => Navigator.push(
@@ -96,8 +105,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                       child: _buildTileCard(
-                    title: 'Report an Incident',
-                    subtitle: 'Report a snake sighting or incident',
+                    title: _t('report_incident'),
+                    subtitle: _t('report_snake_subtitle'),
                     imagePath: null,
                     accent: const Color(0xFF1F1A0E),
                     isMap: true,
@@ -115,7 +124,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               if (!_factDismissed) const SizedBox(height: 16),
 
               // ── QUICK ACTIONS ───────────────────────────────────────────
-              Text('Quick Services',
+              Text(_t('quick_services'),
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 17,
@@ -221,14 +230,13 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Identify a Snake',
-                          style: TextStyle(
+                      Text(_t('identify_a_snake'),
+                          style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
                               fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      Text(
-                          'Tap here to scan and identify\na snake in real-time.',
+                      Text(_t('scan_subtitle'),
                           style: const TextStyle(
                               color: Colors.white60, fontSize: 12)),
                     ],
@@ -240,13 +248,14 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       color: const Color(0xFF00FF66),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.camera_alt, color: Colors.black, size: 16),
-                        SizedBox(width: 5),
-                        Text('Scan',
-                            style: TextStyle(
+                        const Icon(Icons.camera_alt,
+                            color: Colors.black, size: 16),
+                        const SizedBox(width: 5),
+                        Text(_t('scan'),
+                            style: const TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.bold)),
                       ],
@@ -345,8 +354,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Did you know?',
-                    style: TextStyle(
+                Text(_t('did_you_know'),
+                    style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 15)),
@@ -364,8 +373,9 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       color: Colors.white10,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text('Dismiss',
-                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    child: Text(_t('dismiss'),
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12)),
                   ),
                 ),
               ],
@@ -390,7 +400,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Widget _buildQuickActions() {
     final actions = [
       _Action(
-          'Emergency',
+          _t('emergency'),
           Icons.local_hospital_rounded,
           Colors.redAccent,
           () => Navigator.push(
@@ -398,18 +408,18 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
               MaterialPageRoute(
                   builder: (_) => EmergencyScreen(lang: widget.lang)))),
       _Action(
-          'Experts',
+          _t('experts'),
           Icons.people_alt_rounded,
           Colors.purpleAccent,
           () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => const NearbyRescuersScreen()))),
       _Action(
-          'Live Map',
+          _t('live_map'),
           Icons.map_rounded,
           Colors.tealAccent,
           () => Navigator.push(
               context, MaterialPageRoute(builder: (_) => const MapScreen()))),
-      _Action('Call 1990', Icons.phone_in_talk_rounded, Colors.greenAccent,
+      _Action(_t('call_1990'), Icons.phone_in_talk_rounded, Colors.greenAccent,
           _callEmergency),
     ];
     return Row(

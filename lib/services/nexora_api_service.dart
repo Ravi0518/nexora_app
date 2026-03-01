@@ -114,19 +114,54 @@ class NexoraApiService {
   // 3. EXPERTS / NEARBY RESCUERS
   // ════════════════════════════════════════════════════════════════════════════
 
-  /// GET /api/experts — All available snake experts.
-  static Future<List<Map<String, dynamic>>> getExperts() async {
+  /// GET /api/experts/nearby?lat=X&lng=Y — All available snake experts.
+  static Future<List<Map<String, dynamic>>> getExperts(
+      {double? lat, double? lng}) async {
     try {
+      String url = '$baseUrl/experts/nearby';
+      if (lat != null && lng != null) {
+        url += '?lat=$lat&lng=$lng';
+      } else {
+        url += '?lat=8.3444&lng=80.5024';
+      }
       final res = await http.get(
-        Uri.parse('$baseUrl/experts'),
-        headers: await _publicHeaders(),
+        Uri.parse(url),
+        headers: await _authHeaders(),
       );
       if (res.statusCode == 200) {
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       }
-      return _localExpertFallback();
+      return [];
     } catch (_) {
-      return _localExpertFallback();
+      return [];
+    }
+  }
+
+  /// POST /api/experts/status — Update enthusiast availability status.
+  static Future<bool> updateExpertStatus(bool isAvailable) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/experts/status'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'is_available': isAvailable}),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// POST /api/experts/location — Update enthusiast location
+  static Future<bool> updateExpertLocation(double lat, double lng) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/experts/location'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'lat': lat, 'lng': lng}),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -219,6 +254,39 @@ class NexoraApiService {
       return res.statusCode == 200;
     } catch (_) {
       return false;
+    }
+  }
+
+  /// POST /api/experts/catch-report — Submit an expert catch report
+  static Future<Map<String, dynamic>> submitCatchReport({
+    required String requestId,
+    required String species,
+    required String condition,
+    required String comments,
+    required String imagePath,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/experts/catch-report'),
+      );
+      final headers = await _authHeaders();
+      request.headers.addAll(headers..remove('Content-Type'));
+
+      request.fields['request_id'] = requestId;
+      request.fields['species'] = species;
+      request.fields['condition'] = condition;
+      request.fields['comments'] = comments;
+      request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+
+      final streamed = await request.send();
+      final body = await streamed.stream.bytesToString();
+      if (streamed.statusCode == 200 || streamed.statusCode == 201) {
+        return {'success': true, ...jsonDecode(body)};
+      }
+      return {'success': false, 'message': 'Failed to submit.'};
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
@@ -376,42 +444,6 @@ class NexoraApiService {
           'first_aid':
               'CRITICAL: Call 1990 immediately. Neurotoxic venom acts fast.',
           'habitat': 'Wet zone forests, rubber and coconut plantations.',
-        },
-      ];
-
-  static List<Map<String, dynamic>> _localExpertFallback() => [
-        {
-          'id': 1,
-          'name': 'Dr. Alistair Finch',
-          'role': 'Certified Herpetologist',
-          'distance_km': 2.5,
-          'status': 'available',
-          'phone': '0771234567',
-          'profile_image_url': null,
-          'rating': 4.8,
-          'total_rescues': 23,
-        },
-        {
-          'id': 2,
-          'name': 'Brenda Summers',
-          'role': 'Experienced Snake Handler',
-          'distance_km': 4.1,
-          'status': 'available',
-          'phone': '0719876543',
-          'profile_image_url': null,
-          'rating': 4.6,
-          'total_rescues': 15,
-        },
-        {
-          'id': 3,
-          'name': 'Marcus Thorne',
-          'role': 'Wildlife Rescue Volunteer',
-          'distance_km': 7.8,
-          'status': 'busy',
-          'phone': '0751112223',
-          'profile_image_url': null,
-          'rating': 4.3,
-          'total_rescues': 9,
         },
       ];
 

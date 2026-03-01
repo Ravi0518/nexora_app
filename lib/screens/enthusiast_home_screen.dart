@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../services/nexora_api_service.dart';
+import '../services/auth_service.dart';
 
-/// Enthusiast Home Screen — matches Screen 14 design.
-/// Loads real rescue requests from API. Falls back to mock if unavailable.
+import '../services/nexora_api_service.dart';
+import '../services/location_service.dart';
+import 'enthusiast_dashboard_tab.dart';
+import 'enthusiast_requests_tab.dart';
+import 'scan_screen.dart';
+import 'enthusiast_history_tab.dart';
+import 'enthusiast_profile_screen.dart';
+
 class EnthusiastHomeScreen extends StatefulWidget {
   final String lang;
+
   const EnthusiastHomeScreen({super.key, required this.lang});
 
   @override
@@ -13,316 +19,194 @@ class EnthusiastHomeScreen extends StatefulWidget {
 }
 
 class _EnthusiastHomeScreenState extends State<EnthusiastHomeScreen> {
-  List<Map<String, dynamic>> _requests = [];
-  int _currentIndex = 0;
+  int _selectedIndex = 0;
+  Map<String, dynamic> _userData = {};
   bool _isLoading = true;
-  bool _isResponding = false;
 
   @override
   void initState() {
     super.initState();
-    _loadRequests();
+    _loadUser();
+    LocationService().startTracking();
   }
 
-  Future<void> _loadRequests() async {
-    final data = await NexoraApiService.getRescueRequests();
-    if (!mounted) return;
-    setState(() {
-      _requests = data;
-      _isLoading = false;
-    });
+  @override
+  void dispose() {
+    LocationService().stopTracking();
+    super.dispose();
   }
 
-  Future<void> _openMap(double lat, double lng) async {
-    final url =
-        Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-    if (await canLaunchUrl(url))
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-  }
-
-  Future<void> _respond(bool accept) async {
-    if (_requests.isEmpty) return;
-    final req = _requests[_currentIndex];
-    setState(() => _isResponding = true);
-
-    final ok =
-        await NexoraApiService.respondToRequest(req['id'].toString(), accept);
-
-    if (!mounted) return;
-    setState(() => _isResponding = false);
-
-    if (accept && ok) {
-      final lat = req['lat'] as double?;
-      final lng = req['lng'] as double?;
-      if (lat != null && lng != null) _openMap(lat, lng);
+  // To handle lang updates if changed in profile tab
+  @override
+  void didUpdateWidget(covariant EnthusiastHomeScreen oldWidget) {
+    if (oldWidget.lang != widget.lang) {
+      setState(() {});
     }
-
-    // Remove handled request
-    setState(() {
-      _requests.removeAt(_currentIndex);
-      if (_currentIndex >= _requests.length && _currentIndex > 0) {
-        _currentIndex = _requests.length - 1;
-      }
-    });
+    super.didUpdateWidget(oldWidget);
   }
 
-  String _tl(String en, String si, String ta) {
-    if (widget.lang == 'සිංහල') return si;
-    if (widget.lang == 'தமிழ்') return ta;
-    return en;
+  Future<void> _loadUser() async {
+    final data = await NexoraApiService.getUserProfile();
+    if (mounted) {
+      setState(() {
+        _userData = data ?? {};
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<Widget> _buildPages() {
+    return [
+      EnthusiastDashboardTab(userData: _userData),
+      EnthusiastRequestsTab(lang: widget.lang),
+      ScanScreen(lang: widget.lang),
+      EnthusiastHistoryTab(lang: widget.lang),
+      EnthusiastProfileScreen(
+        userData: _userData,
+        onLanguageChanged: (newLang) {
+          // You could trigger a re-render here if you pass a callback up
+        },
+      ),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF07120B),
+        body:
+            Center(child: CircularProgressIndicator(color: Color(0xFF00FF66))),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF07120B),
       appBar: AppBar(
+        title: Image.asset('assets/images/nexor.png', height: 35),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: Colors.white),
-          onPressed: () {},
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu_rounded, color: Colors.white),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
-        title: Image.asset('assets/images/nexor.png', height: 36),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-            onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-          ),
-        ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF00FF66)))
-          : _requests.isEmpty
-              ? _buildEmptyState()
-              : _buildRequestCard(_requests[_currentIndex]),
+      drawer: _buildDrawer(context),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _buildPages(),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.only(bottom: 20, top: 10),
+        decoration: const BoxDecoration(
+          color: Color(0xFF0A140A),
+          border: Border(top: BorderSide(color: Colors.white10, width: 1)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _navItem(0, Icons.dashboard_rounded, 'Dashboard'),
+            _navItem(1, Icons.notifications_active_rounded, 'Requests'),
+            _navItem(2, Icons.camera_alt_rounded, 'Scan', isFab: true),
+            _navItem(3, Icons.history_rounded, 'History'),
+            _navItem(4, Icons.person_rounded, 'Profile'),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
+  Widget _navItem(int index, IconData icon, String label,
+      {bool isFab = false}) {
+    final isSelected = _selectedIndex == index;
+    final color = isSelected ? const Color(0xFF00FF66) : Colors.white24;
+
+    if (isFab) {
+      return GestureDetector(
+        onTap: () => setState(() => _selectedIndex = index),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF00FF66),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF00FF66).withValues(alpha: 0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              )
+            ],
+          ),
+          child: const Icon(Icons.camera_alt_rounded,
+              color: Colors.black, size: 28),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedIndex = index),
+      behavior: HitTestBehavior.opaque,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.check_circle_outline_rounded,
-              color: Color(0xFF00FF66), size: 64),
-          const SizedBox(height: 20),
-          const Text('No Pending Requests',
+          Icon(icon, color: color, size: 26),
+          const SizedBox(height: 4),
+          Text(label,
               style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          const Text('You\'re all caught up!',
-              style: TextStyle(color: Colors.white38)),
-          const SizedBox(height: 30),
-          TextButton(
-            onPressed: _loadRequests,
-            child: const Text('Refresh',
-                style: TextStyle(color: Color(0xFF00FF66))),
-          ),
+                  color: color,
+                  fontSize: 10,
+                  fontWeight:
+                      isSelected ? FontWeight.bold : FontWeight.normal)),
         ],
       ),
     );
   }
 
-  Widget _buildRequestCard(Map<String, dynamic> req) {
-    final requests = _requests;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: const Color(0xFF07120B),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Request count indicator
-          if (requests.length > 1)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                children: [
-                  Text('${_currentIndex + 1} of ${requests.length} requests',
-                      style:
-                          const TextStyle(color: Colors.white38, fontSize: 13)),
-                  const Spacer(),
-                  Row(
-                    children: List.generate(
-                      requests.length,
-                      (i) => Container(
-                        width: i == _currentIndex ? 20 : 6,
-                        height: 6,
-                        margin: const EdgeInsets.only(right: 4),
-                        decoration: BoxDecoration(
-                          color: i == _currentIndex
-                              ? const Color(0xFF00FF66)
-                              : Colors.white12,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          Text(
-              _tl('New Assistance Request', 'නව සහාය ඉල්ලීම',
-                  'புதிய உதவி கோரிக்கை'),
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF131A14),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Color(0xFF131A14)),
+            child: Row(
               children: [
-                // Snake / incident image
-                ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(28)),
-                  child: req['image_url'] != null
-                      ? Image.network(
-                          req['image_url'],
-                          height: 240,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                        )
-                      : _imagePlaceholder(),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Location + time
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _infoBadge(Icons.location_on_outlined,
-                              '${req['distance_km'] ?? '?'} km away'),
-                          _infoBadge(Icons.access_time_rounded,
-                              req['reported_at'] ?? 'Unknown time'),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(req['location_name'] ?? '',
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 13)),
-                      const SizedBox(height: 16),
-
-                      Text(
-                          _tl("User's Description", "යූසර්ගේ විස්තරය",
-                              "பயனர் விளக்கம்"),
-                          style: const TextStyle(
-                              color: Color(0xFF00FF66),
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Text(req['description'] ?? '',
-                          style: const TextStyle(
-                              color: Colors.white70, height: 1.5)),
-                      const SizedBox(height: 24),
-
-                      // Accept / Reject buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _btn(
-                              _tl('Reject', 'ප්‍රතික්ෂේප කරන්න', 'நிராகரி'),
-                              Colors.white10,
-                              Colors.white60,
-                              _isResponding ? null : () => _respond(false),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: _btn(
-                              _tl('Accept', 'පිළිගන්න', 'ஏற்று'),
-                              const Color(0xFF00FF66),
-                              Colors.black,
-                              _isResponding ? null : () => _respond(true),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                CircleAvatar(
+                    backgroundColor: const Color(0xFF00FF66),
+                    child: Text(_userData['fname']?.substring(0, 1) ?? 'E',
+                        style: const TextStyle(
+                            color: Colors.black, fontWeight: FontWeight.bold))),
+                const SizedBox(width: 15),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(_userData['fname'] ?? 'Expert',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold)),
+                    const Text('Rescuer',
+                        style:
+                            TextStyle(color: Color(0xFF00FF66), fontSize: 13)),
+                  ],
                 ),
               ],
             ),
           ),
-
-          // Navigate between requests
-          if (requests.length > 1)
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                    onPressed: _currentIndex > 0
-                        ? () => setState(() => _currentIndex--)
-                        : null,
-                    child: const Text('← Prev',
-                        style: TextStyle(color: Colors.white38)),
-                  ),
-                  const SizedBox(width: 20),
-                  TextButton(
-                    onPressed: _currentIndex < requests.length - 1
-                        ? () => setState(() => _currentIndex++)
-                        : null,
-                    child: const Text('Next →',
-                        style: TextStyle(color: Colors.white38)),
-                  ),
-                ],
-              ),
-            ),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
+            title:
+                const Text('Logout', style: TextStyle(color: Colors.redAccent)),
+            onTap: () async {
+              await AuthService().logout();
+              if (mounted) Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _imagePlaceholder() {
-    return Container(
-      height: 240,
-      color: const Color(0xFF0A140A),
-      child: const Center(
-        child:
-            Icon(Icons.pest_control_rounded, color: Colors.white10, size: 60),
-      ),
-    );
-  }
-
-  Widget _infoBadge(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: Colors.white38),
-        const SizedBox(width: 5),
-        Text(text, style: const TextStyle(color: Colors.white38, fontSize: 12)),
-      ],
-    );
-  }
-
-  Widget _btn(String label, Color bg, Color txtColor, VoidCallback? onTap) {
-    return SizedBox(
-      height: 56,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: bg,
-          elevation: 0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        ),
-        onPressed: onTap,
-        child: Text(label,
-            style: TextStyle(color: txtColor, fontWeight: FontWeight.bold)),
       ),
     );
   }

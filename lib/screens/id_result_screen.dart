@@ -416,7 +416,10 @@ class _IDResultScreenState extends State<IDResultScreen> {
                                   'Report Sighting', 'වාර්තා කරන්න', 'அறிக்கை'),
                               Colors.white12,
                               Colors.white,
-                              () {},
+                              () {
+                                Navigator.pushNamed(
+                                    context, '/report-incident');
+                              },
                             ),
                           ),
                         ]),

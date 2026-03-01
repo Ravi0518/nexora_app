@@ -19,9 +19,15 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
 
+  // Enthusiast specific controllers
+  final _phoneController = TextEditingController();
+  final _orgController = TextEditingController();
+  final _expController = TextEditingController();
+
   String _selectedRole = 'user';
   bool _isLoading = false;
   bool _obscure = true;
+  bool _shareLocation = true;
 
   // Localization helper
   String _t(String key) => LanguageService.t(widget.lang, key);
@@ -47,6 +53,12 @@ class _SignupScreenState extends State<SignupScreen> {
                 'email': _emailController.text.trim(),
                 'password': _passController.text.trim(),
                 'role': _selectedRole,
+                if (_selectedRole == 'enthusiast') ...{
+                  'phone': _phoneController.text.trim(),
+                  'org': _orgController.text.trim(),
+                  'exp': _expController.text.trim(),
+                  'share_location': _shareLocation.toString(),
+                }
               },
               lang: widget.lang,
             ),
@@ -147,6 +159,50 @@ class _SignupScreenState extends State<SignupScreen> {
                   isPass: true,
                   validator: (v) =>
                       (v != null && v.length < 8) ? _t('pass_short') : null),
+
+              if (_selectedRole == 'enthusiast') ...[
+                const SizedBox(height: 30),
+                const Divider(color: Colors.white10),
+                const SizedBox(height: 20),
+                const Text('Expert Details',
+                    style: TextStyle(
+                        color: Color(0xFF00FF66),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                _label('Contact Number (Required)'),
+                _field(
+                    _phoneController, 'e.g. 0771234567', Icons.phone_outlined,
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'Phone number is required for dispatch'
+                        : null),
+                const SizedBox(height: 20),
+                _label('Organization / Affiliation (Optional)'),
+                _field(_orgController, 'e.g. Wildlife Rescue Team',
+                    Icons.business_outlined),
+                const SizedBox(height: 20),
+                _label('Years of Experience'),
+                _field(_expController, 'e.g. 5', Icons.timer_outlined,
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? 'Experience needed for verification'
+                        : null),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Switch(
+                      value: _shareLocation,
+                      onChanged: (v) => setState(() => _shareLocation = v),
+                      activeColor: const Color(0xFF00FF66),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'Enable Location Sharing\n(Required to receive rescue requests near you)',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 50),
 
