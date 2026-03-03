@@ -353,6 +353,22 @@ class NexoraApiService {
     }
   }
 
+  /// GET /api/incidents/recent
+  static Future<List<Map<String, dynamic>>> getRecentIncidents() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/incidents/recent'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(res.body));
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// GET /api/rescue-requests — Legacy fallback endpoint.
   static Future<List<Map<String, dynamic>>> getRescueRequests() async {
     try {

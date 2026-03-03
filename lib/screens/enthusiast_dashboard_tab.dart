@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'map_screen.dart';
 import '../services/nexora_api_service.dart';
 
@@ -260,6 +261,118 @@ class _EnthusiastDashboardTabState extends State<EnthusiastDashboardTab> {
     );
   }
 
+  void _showJobDetails(BuildContext context, Map<String, dynamic> incident) {
+    final imgPath = incident['image_path'];
+    final reporterPhone = incident['reporter_phone'];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF131A14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Assigned Job Details',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imgPath != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  '${NexoraApiService.baseUrl}/../storage/$imgPath',
+                  height: 150,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 150,
+                    width: double.infinity,
+                    color: Colors.white10,
+                    child: const Icon(Icons.image_not_supported,
+                        color: Colors.white54, size: 40),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 15),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(ctx);
+                final lat = double.tryParse(incident['lat']?.toString() ?? '');
+                final lng = double.tryParse(incident['lng']?.toString() ?? '');
+                if (lat != null && lng != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MapScreen(
+                        activeIncidentId: incident['incident_id'],
+                        incidentLat: lat,
+                        incidentLng: lng,
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Row(
+                children: [
+                  const Icon(Icons.location_on,
+                      color: Colors.orangeAccent, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      incident['location_name'] ?? 'Unknown Location',
+                      style: const TextStyle(
+                          color: Colors.orangeAccent,
+                          decoration: TextDecoration.underline,
+                          fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              incident['description'] ?? 'No details provided.',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            if (reporterPhone != null &&
+                reporterPhone.toString().isNotEmpty) ...[
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final url = Uri.parse('tel:$reporterPhone');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url);
+                    }
+                  },
+                  icon: const Icon(Icons.phone_in_talk_rounded),
+                  label: Text('Contact Reporter: $reporterPhone'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00FF66),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ]
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Colors.white54)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAssignedJobsList() {
     return ListView.separated(
       shrinkWrap: true,
@@ -270,50 +383,54 @@ class _EnthusiastDashboardTabState extends State<EnthusiastDashboardTab> {
         final job = _activeRequests[index];
         final incident = job['incident'] ?? job; // Fallback for diff shapes
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF131A14),
-            borderRadius: BorderRadius.circular(16),
-            border:
-                Border.all(color: Colors.orangeAccent.withValues(alpha: 0.3)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.orangeAccent.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.warning_amber_rounded,
-                    color: Colors.orangeAccent, size: 20),
+        return GestureDetector(
+          onTap: () => _showJobDetails(context, incident),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF131A14),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.orangeAccent.withValues(alpha: 0.3),
               ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      incident['location_name'] ?? 'Unknown Location',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      incident['description'] ?? 'No details provided.',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          const TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orangeAccent.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.warning_amber_rounded,
+                      color: Colors.orangeAccent, size: 20),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: Colors.white38),
-            ],
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        incident['location_name'] ?? 'Unknown Location',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        incident['description'] ?? 'No details provided.',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: Colors.white38),
+              ],
+            ),
           ),
         );
       },

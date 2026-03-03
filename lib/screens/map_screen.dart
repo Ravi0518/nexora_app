@@ -62,8 +62,8 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     final enthusiastsData = await NexoraApiService.getEnthusiasts();
-    // Re-using the getRescueRequests which is effectively the incidents list
-    final incidentsData = await NexoraApiService.getRescueRequests();
+    // Replacing getRescueRequests with the new 24h incidents endpoint
+    final incidentsData = await NexoraApiService.getRecentIncidents();
 
     if (!mounted) return;
     setState(() {
