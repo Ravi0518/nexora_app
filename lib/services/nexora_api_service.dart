@@ -416,6 +416,29 @@ class NexoraApiService {
     }
   }
 
+  /// GET /api/experts/catch-reports — Get catch reports for the logged-in enthusiast.
+  static Future<List<Map<String, dynamic>>> getExpertCatchReports() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/experts/catch-reports'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map && decoded['data'] is List) {
+          return List<Map<String, dynamic>>.from(decoded['data']);
+        }
+        if (decoded is List) {
+          return List<Map<String, dynamic>>.from(decoded);
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching catch reports: $e');
+      return [];
+    }
+  }
+
   // ════════════════════════════════════════════════════════════════════════════
   // 6. CONTENT CONTRIBUTION
   // ════════════════════════════════════════════════════════════════════════════
