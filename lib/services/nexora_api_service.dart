@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -114,7 +115,7 @@ class NexoraApiService {
   // 3. EXPERTS / NEARBY RESCUERS
   // ════════════════════════════════════════════════════════════════════════════
 
-  /// GET /api/experts/nearby?lat=X&lng=Y — All available snake experts.
+  /// GET /api/experts/nearby?lat=X&lng=Y — All available snake enthusiasts near the user.
   static Future<List<Map<String, dynamic>>> getExperts(
       {double? lat, double? lng}) async {
     try {
@@ -129,7 +130,37 @@ class NexoraApiService {
         headers: await _authHeaders(),
       );
       if (res.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(jsonDecode(res.body));
+        final decoded = jsonDecode(res.body);
+        // Response shape: { "success": true, "data": [ { user_id, fname, lname, distance } ] }
+        if (decoded is Map &&
+            decoded['success'] == true &&
+            decoded['data'] is List) {
+          return List<Map<String, dynamic>>.from(decoded['data']);
+        }
+        // Fallback: direct array
+        if (decoded is List) {
+          return List<Map<String, dynamic>>.from(decoded);
+        }
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// GET /api/enthusiasts — All registered enthusiasts
+  static Future<List<Map<String, dynamic>>> getEnthusiasts() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/enthusiasts'),
+        headers: await _authHeaders(),
+      );
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['success'] == true && data['data'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
       }
       return [];
     } catch (_) {
@@ -169,6 +200,36 @@ class NexoraApiService {
   // 4. INCIDENTS
   // ════════════════════════════════════════════════════════════════════════════
 
+  /// POST /api/incidents/{id}/assign — Assign an incident to an enthusiast.
+  static Future<Map<String, dynamic>> assignIncident({
+    required int incidentId,
+    required int enthusiastId,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/incidents/$incidentId/assign'),
+        headers: await _authHeaders(),
+        body: jsonEncode({'enthusiast_id': enthusiastId}),
+      );
+      debugPrint('ASSIGN INCIDENT [${res.statusCode}]: ${res.body}');
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return {'success': true, ...jsonDecode(res.body)};
+      }
+      try {
+        final errData = jsonDecode(res.body);
+        final msg = errData['message'] ?? errData['error'] ?? res.body;
+        return {'success': false, 'message': msg.toString()};
+      } catch (_) {
+        return {
+          'success': false,
+          'message': 'Server error (${res.statusCode})'
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
   /// GET /api/incidents — For map view.
   static Future<List<Map<String, dynamic>>> getIncidents() async {
     try {
@@ -185,6 +246,23 @@ class NexoraApiService {
     }
   }
 
+  /// GET /api/my-incidents — Get incidents reported by the logged-in user.
+  static Future<List<Map<String, dynamic>>> getMyIncidents() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/my-incidents'),
+        headers: await _authHeaders(),
+      );
+      if (res.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(res.body));
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching my incidents: $e');
+      return [];
+    }
+  }
+
   /// POST /api/incidents — Submit a sighting/bite report.
   static Future<Map<String, dynamic>> submitIncident({
     required String type,
@@ -193,6 +271,9 @@ class NexoraApiService {
     double? lat,
     double? lng,
     String? imagePath,
+    String? reporterPhone,
+    String? snakeName,
+    double? confidenceLevel,
   }) async {
     try {
       // Use multipart for image upload
@@ -202,9 +283,19 @@ class NexoraApiService {
       );
       final headers = await _authHeaders();
       request.headers.addAll(headers..remove('Content-Type'));
-      request.fields['type'] = type;
+      // API expects lowercase: 'sighting' or 'bite'
+      request.fields['type'] = type.toLowerCase();
       request.fields['description'] = description;
       request.fields['location_name'] = locationName;
+      if (reporterPhone != null) {
+        request.fields['reporter_phone'] = reporterPhone;
+      }
+      if (snakeName != null) {
+        request.fields['snake_name'] = snakeName;
+      }
+      if (confidenceLevel != null) {
+        request.fields['confidence_level'] = confidenceLevel.toString();
+      }
       if (lat != null) request.fields['lat'] = lat.toString();
       if (lng != null) request.fields['lng'] = lng.toString();
       if (imagePath != null) {
@@ -214,11 +305,23 @@ class NexoraApiService {
 
       final streamed = await request.send();
       final body = await streamed.stream.bytesToString();
+      debugPrint('SUBMIT INCIDENT [${streamed.statusCode}]: $body');
       if (streamed.statusCode == 200 || streamed.statusCode == 201) {
         return {'success': true, ...jsonDecode(body)};
       }
-      return {'success': false, 'message': 'Submission failed.'};
+      // Try to pull error message from server JSON
+      try {
+        final errData = jsonDecode(body);
+        final msg = errData['message'] ?? errData['error'] ?? body;
+        return {'success': false, 'message': msg.toString()};
+      } catch (_) {
+        return {
+          'success': false,
+          'message': 'Server error (${streamed.statusCode})'
+        };
+      }
     } catch (e) {
+      debugPrint('SUBMIT INCIDENT ERROR: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -227,7 +330,30 @@ class NexoraApiService {
   // 5. RESCUE REQUESTS (ENTHUSIAST)
   // ════════════════════════════════════════════════════════════════════════════
 
-  /// GET /api/rescue-requests — Pending requests for the logged-in enthusiast.
+  /// GET /api/experts/requests — Incidents assigned to the logged-in enthusiast.
+  static Future<List<Map<String, dynamic>>> getExpertRequests() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/experts/requests'),
+        headers: await _authHeaders(),
+      );
+      debugPrint('EXPERT REQUESTS [${res.statusCode}]: ${res.body}');
+      if (res.statusCode == 200) {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map && decoded['data'] is List) {
+          return List<Map<String, dynamic>>.from(decoded['data']);
+        }
+        if (decoded is List) {
+          return List<Map<String, dynamic>>.from(decoded);
+        }
+      }
+      return _localRescueFallback();
+    } catch (_) {
+      return _localRescueFallback();
+    }
+  }
+
+  /// GET /api/rescue-requests — Legacy fallback endpoint.
   static Future<List<Map<String, dynamic>>> getRescueRequests() async {
     try {
       final res = await http.get(

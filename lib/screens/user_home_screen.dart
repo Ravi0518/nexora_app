@@ -29,6 +29,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     'image_url': null,
   };
   bool _factDismissed = false;
+  List<Map<String, dynamic>> _recentIncidents = [];
+  bool _isLoadingIncidents = true;
 
   String _t(String key) => LanguageService.t(widget.lang, key);
 
@@ -52,6 +54,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
     // Try fetching fresh profile from API
     final profile = await NexoraApiService.getUserProfile();
     final fact = await NexoraApiService.getRandomFact();
+    final incidents = await NexoraApiService.getMyIncidents();
 
     if (!mounted) return;
     setState(() {
@@ -59,6 +62,8 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
       _userRole =
           profile?['role'] ?? prefs.getString('role') ?? 'General Public';
       _fact = fact;
+      _recentIncidents = incidents;
+      _isLoadingIncidents = false;
     });
   }
 
@@ -131,6 +136,28 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                       fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               _buildQuickActions(),
+              const SizedBox(height: 24),
+
+              // ── RECENT REPORTS / IDENTIFICATIONS ──────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_t('Recent Reports'),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold)),
+                  TextButton(
+                    onPressed: () {}, // Future expansion
+                    child: const Text('See All',
+                        style:
+                            TextStyle(color: Color(0xFF00FF66), fontSize: 13)),
+                  )
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildRecentIncidentsList(),
+
               const SizedBox(height: 30),
             ],
           ),
@@ -448,6 +475,98 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 ),
               ))
           .toList(),
+    );
+  }
+
+  Widget _buildRecentIncidentsList() {
+    if (_isLoadingIncidents) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: CircularProgressIndicator(color: Color(0xFF00FF66)),
+        ),
+      );
+    }
+
+    if (_recentIncidents.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF131A14),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: const Text(
+          'No recent reports yet.',
+          style: TextStyle(color: Colors.white54),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    // Show up to 3 recent incidents
+    final displayList = _recentIncidents.take(3).toList();
+
+    return Column(
+      children: displayList.map((inc) {
+        final title = inc['type'] ?? 'Report';
+        final subtitle = inc['location_name'] ?? 'Unknown location';
+        final status = inc['status'] ?? 'pending';
+        Color statusColor;
+        switch (status.toString().toLowerCase()) {
+          case 'resolved':
+          case 'completed':
+            statusColor = const Color(0xFF00FF66);
+            break;
+          case 'assigned':
+            statusColor = Colors.orangeAccent;
+            break;
+          default:
+            statusColor = Colors.white54;
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF131A14),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.history_rounded,
+                  color: Colors.white54, size: 20),
+            ),
+            title: Text(title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14)),
+            subtitle: Text(subtitle,
+                style: const TextStyle(color: Colors.white54, fontSize: 12)),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                status.toString().toUpperCase(),
+                style: TextStyle(
+                    color: statusColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

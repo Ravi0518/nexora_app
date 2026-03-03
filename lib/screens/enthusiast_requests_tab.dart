@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../services/nexora_api_service.dart';
 
 /// The active requests tab for Enthusiasts.
@@ -25,7 +27,7 @@ class _EnthusiastRequestsTabState extends State<EnthusiastRequestsTab> {
   }
 
   Future<void> _loadRequests() async {
-    final data = await NexoraApiService.getRescueRequests();
+    final data = await NexoraApiService.getExpertRequests();
     if (!mounted) return;
     setState(() {
       _requests = data;
@@ -169,20 +171,64 @@ class _EnthusiastRequestsTabState extends State<EnthusiastRequestsTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Location Map Preview
+                if (req['lat'] != null && req['lng'] != null)
+                  SizedBox(
+                    height: 200,
+                    width: double.infinity,
+                    child: ClipRRect(
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(28)),
+                      child: FlutterMap(
+                        options: MapOptions(
+                          initialCenter: LatLng(
+                            (req['lat'] as num).toDouble(),
+                            (req['lng'] as num).toDouble(),
+                          ),
+                          initialZoom: 15,
+                          interactionOptions: const InteractionOptions(
+                            flags: InteractiveFlag.none,
+                          ),
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.example.nexora_app',
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: LatLng(
+                                  (req['lat'] as num).toDouble(),
+                                  (req['lng'] as num).toDouble(),
+                                ),
+                                width: 40,
+                                height: 40,
+                                child: const Icon(
+                                  Icons.location_pin,
+                                  color: Colors.redAccent,
+                                  size: 36,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                 // Snake / incident image
-                ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(28)),
-                  child: req['image_url'] != null
-                      ? Image.network(
-                          req['image_url'],
-                          height: 240,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                        )
-                      : _imagePlaceholder(),
-                ),
+                if (req['image_url'] != null)
+                  Image.network(
+                    req['image_url'],
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                  )
+                else
+                  _imagePlaceholder(),
 
                 Padding(
                   padding: const EdgeInsets.all(20),

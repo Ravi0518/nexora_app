@@ -6,7 +6,7 @@ class AuthService {
   // Use your Mac's Local IP (Run 'ifconfig' in terminal to find it)
   // 🔧 Use your Mac's WiFi IP (run: ipconfig getifaddr en0 in terminal)
   // ❌ 10.0.2.2 only works for Android Emulator, NOT real devices!
-  static const String baseUrl = 'http://192.168.8.102:8000/api';
+  static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   /// STEP 1: Send OTP to check email availability
   Future<Map<String, dynamic>> sendOTP(String email) async {
@@ -181,7 +181,10 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        return {'success': true, 'message': 'Reset link sent to your email.'};
+        return {
+          'success': true,
+          'message': 'Your password reset link has been sent to your email.'
+        };
       }
       return {'success': false, 'message': 'Email address not found.'};
     } catch (e) {

@@ -76,7 +76,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
 
       final controller = CameraController(
         _cameras[cameraIdx],
-        ResolutionPreset.high,
+        ResolutionPreset.medium,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -115,16 +115,24 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
       final XFile photo = await _cameraController!.takePicture();
       await _processImage(File(photo.path));
     } catch (e) {
-      _showError();
+      _showError(e.toString());
     }
   }
 
   // ── PICK FROM GALLERY ─────────────────────────────────────────────────────────
   Future<void> _pickFromGallery() async {
     final picker = ImagePicker();
-    final XFile? image =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (image != null) await _processImage(File(image.path));
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1080,
+      maxHeight: 1080,
+    );
+    try {
+      if (image != null) await _processImage(File(image.path));
+    } catch (e) {
+      _showError(e.toString());
+    }
   }
 
   // ── API CALL ─────────────────────────────────────────────────────────────────
@@ -138,7 +146,13 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
         ),
       });
 
-      final response = await Dio().post(
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 30),
+      ));
+
+      final response = await dio.post(
         "https://snake-api-eshan123.azurewebsites.net/predict",
         data: formData,
       );
@@ -146,29 +160,51 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
       setState(() => _isProcessing = false);
 
       if (response.statusCode == 200 && mounted) {
+        final data = response.data;
+        if (data == null || data['top_prediction'] == null) {
+          throw Exception("Invalid data format from AI API");
+        }
+
+        // The CNN API returns class_id inside predictions[0], not in top_prediction.
+        // We use it to fetch the correct snake from the Laravel /api/snakes/{id}.
+        int? snakeId;
+        final predictions = data['predictions'];
+        if (predictions is List && predictions.isNotEmpty) {
+          final first = predictions[0];
+          final rawId = first['class_id'];
+          if (rawId != null) {
+            snakeId = rawId is int ? rawId : int.tryParse(rawId.toString());
+          }
+        }
+
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => IDResultScreen(
-              snakeData: response.data,
+              snakeData: data,
               currentLang: widget.lang,
               confidenceScore:
-                  (response.data['top_prediction']['confidence'] ?? 0.0)
-                      .toDouble(),
+                  (data['top_prediction']['confidence'] ?? 0.0).toDouble(),
+              snakeId: snakeId,
+              imagePath: imageFile
+                  .path, // Passed to ID result screen so it can be passed to Report Incident
             ),
           ),
         );
+      } else {
+        throw Exception("Server returned ${response.statusCode}");
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint("SCAN ERROR: $e");
       setState(() => _isProcessing = false);
-      _showError();
+      _showError(e.toString());
     }
   }
 
-  void _showError() {
+  void _showError(String er) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(_t("API connection error. Try again.",
+      content: Text(_t("API connection error. Try again.\n($er)",
           "සම්බන්ධතාවය අසාර්ථකයි.", "இணைப்பு தோல்வியடைந்தது")),
       backgroundColor: Colors.redAccent,
     ));

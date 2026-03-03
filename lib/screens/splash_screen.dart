@@ -23,13 +23,9 @@ class _SplashScreenState extends State<SplashScreen> {
     String? lang = await LanguageService.getLang(); // කලින් භාෂාවක් තෝරලා තියෙනවද බලනවා
 
     if (!mounted) return;
-    if (lang == null) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => const LanguageScreen()));
-    } else {
-      // ලොගින් ලොජික් එක මෙතනට පසුව ඇතුළත් කළ හැක
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => MainNavigation(lang: lang, role: 'user')));
+    // ලොගින් ලොජික් එක මෙතනට පසුව ඇතුළත් කළ හැක
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => MainNavigation(lang: lang, role: 'user')));
     }
-  }
 
   @override
   Widget build(BuildContext context) {

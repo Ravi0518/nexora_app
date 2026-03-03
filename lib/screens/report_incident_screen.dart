@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'dart:io';
 import '../services/location_service.dart';
 import '../services/nexora_api_service.dart';
+import 'map_screen.dart';
 
 class ReportIncidentScreen extends StatefulWidget {
-  const ReportIncidentScreen({super.key});
+  final String? scannedImagePath;
+  final String? snakeName;
+  final String? snakeDescription;
+  final double? confidenceScore;
+
+  const ReportIncidentScreen({
+    super.key,
+    this.scannedImagePath,
+    this.snakeName,
+    this.snakeDescription,
+    this.confidenceScore,
+  });
 
   @override
   State<ReportIncidentScreen> createState() => _ReportIncidentScreenState();
@@ -16,6 +29,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
   String _selectedType = 'Sighting'; // Sighting or Bite
   File? _image;
   final _descriptionController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   bool _isLoadingLocation = true;
   bool _isSubmitting = false;
@@ -25,6 +39,36 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
   void initState() {
     super.initState();
     _fetchLocation();
+    _prefillData();
+  }
+
+  Future<void> _prefillData() async {
+    // 1. Pre-fill image
+    if (widget.scannedImagePath != null &&
+        widget.scannedImagePath!.isNotEmpty) {
+      if (mounted) {
+        setState(() => _image = File(widget.scannedImagePath!));
+      }
+    }
+
+    // 2. Pre-fill description
+    final parts = <String>[];
+    if (widget.snakeName != null && widget.snakeName!.isNotEmpty) {
+      parts.add('Snake: ${widget.snakeName}');
+    }
+    if (widget.snakeDescription != null &&
+        widget.snakeDescription!.isNotEmpty) {
+      parts.add('Details: ${widget.snakeDescription}');
+    }
+    if (parts.isNotEmpty) {
+      _descriptionController.text = parts.join('\n');
+    }
+
+    // 3. Auto-fill phone number from profile
+    final profile = await NexoraApiService.getUserProfile();
+    if (mounted && profile != null && profile['phone'] != null) {
+      _phoneController.text = profile['phone'].toString();
+    }
   }
 
   Future<void> _fetchLocation() async {
@@ -40,13 +84,12 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
   }
 
   Future<void> _submitReport() async {
-    if (_image == null ||
-        _descriptionController.text.trim().isEmpty ||
+    if (_descriptionController.text.trim().isEmpty ||
         _currentLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text(
-                'Please provide a photo, description, and wait for location to load.')),
+                'Please provide a description and wait for location to load.')),
       );
       return;
     }
@@ -63,23 +106,44 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
       locationName: locName,
       lat: _currentLocation!.latitude,
       lng: _currentLocation!.longitude,
-      imagePath: _image!.path,
+      imagePath: _image?.path,
+      reporterPhone: _phoneController.text.trim().isNotEmpty
+          ? _phoneController.text.trim()
+          : null,
+      snakeName: widget.snakeName,
+      confidenceLevel: widget.confidenceScore,
     );
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
     if (res['success'] == true) {
+      final rawId = res['incident_id'];
+      final incidentId = rawId is int ? rawId : int.tryParse(rawId.toString());
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Report submitted successfully!'),
+            content: Text('Report submitted! Now select an enthusiast.'),
             backgroundColor: Color(0xFF00FF66)),
       );
-      Navigator.pop(context); // Go back after report
+
+      // Navigate to MapScreen to pick an enthusiast
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MapScreen(
+            activeIncidentId: incidentId,
+            incidentLat: _currentLocation!.latitude,
+            incidentLng: _currentLocation!.longitude,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Failed to submit report.'),
+        SnackBar(
+            content:
+                Text(res['message']?.toString() ?? 'Failed to submit report.'),
             backgroundColor: Colors.redAccent),
       );
     }
@@ -160,7 +224,6 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
             ),
             const SizedBox(height: 30),
 
-            // 3. DESCRIPTION FIELD
             const Text("Description",
                 style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 12),
@@ -180,7 +243,28 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
             ),
             const SizedBox(height: 30),
 
-            // 4. INCIDENT LOCATION (MAP PREVIEW)
+            // 4. CONTACT NUMBER FIELD
+            const Text("Contact Number",
+                style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: "Enter your contact number",
+                hintStyle: const TextStyle(color: Colors.white24),
+                filled: true,
+                fillColor: const Color(0xFF1A1F1A),
+                prefixIcon: const Icon(Icons.phone, color: Colors.white54),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 30),
+
+            // 5. INCIDENT LOCATION (MAP PREVIEW)
             const Text("Incident Location",
                 style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 12),
@@ -199,16 +283,35 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
                         ? const Center(
                             child: Text('Could not fetch location',
                                 style: TextStyle(color: Colors.white38)))
-                        : GoogleMap(
-                            initialCameraPosition: CameraPosition(
-                                target: _currentLocation!, zoom: 15),
-                            markers: {
-                              Marker(
-                                  markerId: const MarkerId('incident'),
-                                  position: _currentLocation!)
-                            },
-                            myLocationEnabled: false,
-                            zoomControlsEnabled: false,
+                        : FlutterMap(
+                            options: MapOptions(
+                              initialCenter: _currentLocation!,
+                              initialZoom: 15,
+                              interactionOptions: const InteractionOptions(
+                                flags: InteractiveFlag.none,
+                              ),
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate:
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.example.nexora_app',
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: _currentLocation!,
+                                    width: 40,
+                                    height: 40,
+                                    child: const Icon(
+                                      Icons.location_pin,
+                                      color: Color(0xFF00FF66),
+                                      size: 36,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
               ),
             ),
@@ -220,7 +323,7 @@ class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
 
             const SizedBox(height: 40),
 
-            // 5. SUBMIT BUTTON
+            // 6. SUBMIT BUTTON
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00FF66),

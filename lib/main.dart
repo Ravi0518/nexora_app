@@ -1,8 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
-import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 
 import 'screens/language_screen.dart';
 import 'screens/login_screen.dart';
@@ -23,16 +20,6 @@ import 'screens/content_contribution_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  if (Platform.isAndroid) {
-    final GoogleMapsFlutterPlatform mapsImplementation =
-        GoogleMapsFlutterPlatform.instance;
-    if (mapsImplementation is GoogleMapsFlutterAndroid) {
-      // Force Hybrid Composition (GLSurfaceView) to avoid the Texture/ImageReader maxImages crash
-      mapsImplementation.useAndroidViewSurface = true;
-    }
-  }
-
   final prefs = await SharedPreferences.getInstance();
 
   final String? token = prefs.getString('token');

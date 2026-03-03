@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/nexora_api_service.dart';
+import 'report_incident_screen.dart';
+import 'nearby_rescuers_screen.dart';
 
 class IDResultScreen extends StatefulWidget {
   final Map<String, dynamic> snakeData;
@@ -12,12 +14,16 @@ class IDResultScreen extends StatefulWidget {
   /// to trigger GET /api/snakes/{id} immediately.
   final int? snakeId;
 
+  /// Optional: Image path captured from scan screen
+  final String? imagePath;
+
   const IDResultScreen({
     super.key,
     required this.snakeData,
     required this.currentLang,
     required this.confidenceScore,
     this.snakeId,
+    this.imagePath,
   });
 
   @override
@@ -102,7 +108,29 @@ class _IDResultScreenState extends State<IDResultScreen> {
     final topPrediction = widget.snakeData['top_prediction'];
     final String topSpecies = topPrediction?['species']?.toString() ?? '';
 
-    // 1. Use ID from CNN response if present
+    // 1. Try class_id from predictions list first (most reliable)
+    final predList = widget.snakeData['predictions'];
+    if (predList is List && predList.isNotEmpty) {
+      final rawId = predList[0]['class_id'];
+      if (rawId != null) {
+        final int? classId =
+            rawId is int ? rawId : int.tryParse(rawId.toString());
+        if (classId != null) {
+          try {
+            final result = await NexoraApiService.getSnakeById(classId);
+            if (result != null && result.isNotEmpty) {
+              setState(() {
+                _snake = result;
+                _isLoading = false;
+              });
+              return;
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    // 2. Try ID from top_prediction if server included it
     final rawId = topPrediction?['id'];
     if (rawId != null) {
       final int? snakeId =
@@ -121,7 +149,7 @@ class _IDResultScreenState extends State<IDResultScreen> {
       }
     }
 
-    // 2. Fall back to name-based search via Web Admin API
+    // 3. Fall back to name-based search via Web Admin API
     if (topSpecies.isNotEmpty) {
       try {
         final results = await NexoraApiService.getSnakes(search: topSpecies);
@@ -168,10 +196,16 @@ class _IDResultScreenState extends State<IDResultScreen> {
   }
 
   // ── URL FIX (Android emulator) ───────────────────────────────────────────────
-  /// On the Android emulator, 127.0.0.1 resolves to the emulator's own loopback.
-  /// Replace it with 10.0.2.2 which routes to the host machine (where Laravel runs).
-  String _fixUrl(String url) =>
-      url.replaceFirst('http://127.0.0.1', 'http://10.0.2.2');
+  /// On the Android emulator, 127.0.0.1 and localhost resolve to the emulator's
+  /// own loopback. Replace with 10.0.2.2 which routes to the host machine.
+  String _fixUrl(String url) {
+    var fixed = url
+        .replaceFirst('http://127.0.0.1:8000', 'http://10.0.2.2:8000')
+        .replaceFirst('http://127.0.0.1', 'http://10.0.2.2')
+        .replaceFirst('http://localhost:8000', 'http://10.0.2.2:8000')
+        .replaceFirst('http://localhost', 'http://10.0.2.2');
+    return fixed;
+  }
 
   // ── IMAGE SOURCES ────────────────────────────────────────────────────────────
   /// Returns up to 3 image sources in order:
@@ -416,10 +450,17 @@ class _IDResultScreenState extends State<IDResultScreen> {
                                   'Report Sighting', 'වාර්තා කරන්න', 'அறிக்கை'),
                               Colors.white12,
                               Colors.white,
-                              () {
-                                Navigator.pushNamed(
-                                    context, '/report-incident');
-                              },
+                              () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => ReportIncidentScreen(
+                                          scannedImagePath: widget.imagePath,
+                                          snakeName: commonName,
+                                          snakeDescription: about,
+                                          confidenceScore:
+                                              widget.confidenceScore,
+                                        )),
+                              ),
                             ),
                           ),
                         ]),
@@ -431,7 +472,12 @@ class _IDResultScreenState extends State<IDResultScreen> {
                           const Color(0xFF00FF66),
                           Colors.black,
                           Icons.headset_mic_outlined,
-                          () {},
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NearbyRescuersScreen(),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 10),
                         _bigBtn(

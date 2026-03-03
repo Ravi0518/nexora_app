@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../services/nexora_api_service.dart';
 
-/// Nearby Rescuers Screen — matches Screen 11 design.
-/// Loads expert data from API with fallback.
+/// Nearby Rescuers Screen — shown after submitting an incident.
+/// Loads nearby enthusiasts from GET /api/experts/nearby and lets the user
+/// assign the incident to one via POST /api/incidents/{id}/assign.
 class NearbyRescuersScreen extends StatefulWidget {
-  const NearbyRescuersScreen({super.key});
+  /// The ID of the incident that was just submitted (null = browse-only mode).
+  final int? incidentId;
+
+  /// Coordinates used to query nearby enthusiasts.
+  final double? lat;
+  final double? lng;
+
+  const NearbyRescuersScreen({
+    super.key,
+    this.incidentId,
+    this.lat,
+    this.lng,
+  });
 
   @override
   State<NearbyRescuersScreen> createState() => _NearbyRescuersScreenState();
@@ -14,6 +26,7 @@ class NearbyRescuersScreen extends StatefulWidget {
 class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
   List<Map<String, dynamic>> _experts = [];
   bool _isLoading = true;
+  int? _assigningId; // user_id of enthusiast being assigned to
 
   @override
   void initState() {
@@ -22,7 +35,11 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
   }
 
   Future<void> _loadExperts() async {
-    final data = await NexoraApiService.getExperts();
+    setState(() => _isLoading = true);
+    final data = await NexoraApiService.getExperts(
+      lat: widget.lat,
+      lng: widget.lng,
+    );
     if (!mounted) return;
     setState(() {
       _experts = data;
@@ -30,9 +47,40 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
     });
   }
 
-  Future<void> _callNumber(String phone) async {
-    final url = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(url)) await launchUrl(url);
+  Future<void> _assign(Map<String, dynamic> expert) async {
+    final incidentId = widget.incidentId;
+    if (incidentId == null) return;
+
+    final userId = expert['user_id'] as int?;
+    if (userId == null) return;
+
+    setState(() => _assigningId = userId);
+
+    final res = await NexoraApiService.assignIncident(
+      incidentId: incidentId,
+      enthusiastId: userId,
+    );
+
+    if (!mounted) return;
+    setState(() => _assigningId = null);
+
+    if (res['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message']?.toString() ?? 'Enthusiast assigned!'),
+          backgroundColor: const Color(0xFF00FF66),
+        ),
+      );
+      // Pop back to home after successful assignment
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message']?.toString() ?? 'Failed to assign.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   @override
@@ -42,13 +90,25 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Request Assistance',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          widget.incidentId != null
+              ? 'Request Enthusiast Help'
+              : 'Nearby Enthusiasts',
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white54),
+            onPressed: _loadExperts,
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
       body: Column(
         children: [
-          // ── SAFETY NOTICE ───────────────────────────────────────────
+          // ── SAFETY NOTICE ─────────────────────────────────────────────
           Container(
             margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             padding: const EdgeInsets.all(14),
@@ -65,7 +125,7 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Important: Do not approach the snake. Maintain a safe distance.',
+                    'Do not approach the snake. Select a nearby enthusiast to request help.',
                     style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
                   ),
                 ),
@@ -73,35 +133,63 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
             ),
           ),
 
-          // ── HEADER COUNT ────────────────────────────────────────────
+          // ── HEADER COUNT ──────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Experts Near You',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-                Text('${_experts.length} Found',
-                    style:
-                        const TextStyle(color: Colors.white38, fontSize: 12)),
+                const Text(
+                  'Enthusiasts Near You',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${_experts.length} Found',
+                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 12),
 
-          // ── EXPERTS LIST ────────────────────────────────────────────
+          // ── EXPERTS LIST ──────────────────────────────────────────────
           Expanded(
             child: _isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFF00FF66)))
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _experts.length,
-                    itemBuilder: (ctx, i) => _buildExpertCard(_experts[i]),
-                  ),
+                : _experts.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: _experts.length,
+                        itemBuilder: (ctx, i) => _buildExpertCard(_experts[i]),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.location_off, color: Colors.white24, size: 54),
+          const SizedBox(height: 16),
+          const Text('No enthusiasts nearby',
+              style: TextStyle(color: Colors.white54, fontSize: 16)),
+          const SizedBox(height: 8),
+          const Text('Try again later or contact emergency services.',
+              style: TextStyle(color: Colors.white24, fontSize: 12)),
+          const SizedBox(height: 24),
+          TextButton(
+            onPressed: _loadExperts,
+            child:
+                const Text('Retry', style: TextStyle(color: Color(0xFF00FF66))),
           ),
         ],
       ),
@@ -109,12 +197,16 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
   }
 
   Widget _buildExpertCard(Map<String, dynamic> expert) {
-    final isAvailable = expert['status'] == 'available';
-    final statusText = isAvailable ? 'Available Now' : 'Responds in 15 mins';
-    final statusColor =
-        isAvailable ? const Color(0xFF00FF66) : Colors.orangeAccent;
-    final distKm = expert['distance_km']?.toString() ?? '?';
-    final phone = expert['phone'] ?? '';
+    // API shape: { user_id, fname, lname, distance }
+    final userId = expert['user_id'];
+    final name = '${expert['fname'] ?? ''} ${expert['lname'] ?? ''}'.trim();
+    final distKm = expert['distance'] ?? expert['distance_km'];
+    final distStr = distKm != null
+        ? '${(distKm as num).toStringAsFixed(2)} km away'
+        : '? km away';
+
+    final isAssigning = _assigningId == userId;
+    final canAssign = widget.incidentId != null && userId != null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -127,7 +219,7 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
         children: [
           // Avatar
           CircleAvatar(
-            radius: 28,
+            radius: 26,
             backgroundColor: const Color(0xFF0A140A),
             backgroundImage: expert['profile_image_url'] != null
                 ? NetworkImage(expert['profile_image_url']) as ImageProvider
@@ -138,63 +230,57 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
           ),
           const SizedBox(width: 14),
 
-          // Name + role + status
+          // Name + distance
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(expert['name'] ?? '',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15)),
-                Text(expert['role'] ?? '',
-                    style:
-                        const TextStyle(color: Colors.white38, fontSize: 12)),
-                const SizedBox(height: 5),
+                Text(
+                  name.isNotEmpty ? name : 'Enthusiast',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15),
+                ),
+                const SizedBox(height: 4),
                 Row(
                   children: [
-                    Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                            color: statusColor, shape: BoxShape.circle)),
-                    const SizedBox(width: 5),
-                    Text(statusText,
-                        style: TextStyle(color: statusColor, fontSize: 11)),
-                    const Text(' • ', style: TextStyle(color: Colors.white24)),
-                    Text('$distKm km away',
+                    const Icon(Icons.location_on_outlined,
+                        size: 13, color: Color(0xFF00FF66)),
+                    const SizedBox(width: 4),
+                    Text(distStr,
                         style: const TextStyle(
-                            color: Colors.white38, fontSize: 11)),
+                            color: Colors.white38, fontSize: 12)),
                   ],
                 ),
               ],
             ),
           ),
 
-          // Action buttons
-          _circleBtn(Icons.chat_bubble_outline_rounded, const Color(0xFF1A331A),
-              const Color(0xFF00FF66), isAvailable, () {}),
-          const SizedBox(width: 8),
-          _circleBtn(
-              Icons.phone_rounded,
-              isAvailable ? const Color(0xFF00FF66) : const Color(0xFF1A1F1A),
-              isAvailable ? Colors.black : Colors.white38,
-              true,
-              phone.isNotEmpty ? () => _callNumber(phone) : null),
+          // Request Help button (only when incidentId is set)
+          if (canAssign)
+            isAssigning
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                        color: Color(0xFF00FF66), strokeWidth: 2))
+                : ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00FF66),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () => _assign(expert),
+                    child: const Text('Request',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
         ],
-      ),
-    );
-  }
-
-  Widget _circleBtn(IconData icon, Color bg, Color iconCol, bool enabled,
-      VoidCallback? onTap) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-        child: Icon(icon, color: iconCol, size: 18),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'map_screen.dart';
 
 class EnthusiastDashboardTab extends StatelessWidget {
   final Map<String, dynamic> userData;
@@ -41,43 +42,51 @@ class EnthusiastDashboardTab extends StatelessWidget {
 
           const SizedBox(height: 30),
 
-          // Action Hint
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF132A1C),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00FF66).withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
+          // Action Hint / Live Map Access
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MapScreen()),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF132A1C),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00FF66).withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.map_outlined,
+                        color: Color(0xFF00FF66)),
                   ),
-                  child:
-                      const Icon(Icons.map_outlined, color: Color(0xFF00FF66)),
-                ),
-                const SizedBox(width: 15),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Ready for Dispatch',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16)),
-                      SizedBox(height: 4),
-                      Text(
-                          'Your location is updating. You will be notified of nearby emergencies.',
-                          style:
-                              TextStyle(color: Colors.white60, fontSize: 12)),
-                    ],
-                  ),
-                )
-              ],
+                  const SizedBox(width: 15),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Live Map & Dispatch',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16)),
+                        SizedBox(height: 4),
+                        Text(
+                            'View all incidents and fellow enthusiasts on the map. You will be notified of nearby emergencies.',
+                            style:
+                                TextStyle(color: Colors.white60, fontSize: 12)),
+                      ],
+                    ),
+                  )
+                ],
+              ),
             ),
           )
         ],
