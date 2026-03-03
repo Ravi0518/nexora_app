@@ -201,8 +201,10 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
     final userId = expert['user_id'];
     final name = '${expert['fname'] ?? ''} ${expert['lname'] ?? ''}'.trim();
     final distKm = expert['distance'] ?? expert['distance_km'];
-    final distStr = distKm != null
-        ? '${(distKm as num).toStringAsFixed(2)} km away'
+    final distKmVal =
+        distKm != null ? double.tryParse(distKm.toString()) : null;
+    final distStr = distKmVal != null
+        ? '${distKmVal.toStringAsFixed(2)} km away'
         : '? km away';
 
     final isAssigning = _assigningId == userId;

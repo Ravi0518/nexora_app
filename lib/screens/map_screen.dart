@@ -124,8 +124,8 @@ class _MapScreenState extends State<MapScreen> {
                   ..._enthusiasts
                       .where((e) => e['lat'] != null && e['lng'] != null)
                       .map((e) {
-                    final lat = (e['lat'] as num).toDouble();
-                    final lng = (e['lng'] as num).toDouble();
+                    final lat = double.tryParse(e['lat'].toString()) ?? 0.0;
+                    final lng = double.tryParse(e['lng'].toString()) ?? 0.0;
                     final isAvailable =
                         (e['is_available'] == 1 || e['is_available'] == true);
                     final color = isAvailable
@@ -332,8 +332,8 @@ class _MapScreenState extends State<MapScreen> {
                   ..._incidents
                       .where((i) => i['lat'] != null && i['lng'] != null)
                       .map((i) {
-                    final lat = (i['lat'] as num).toDouble();
-                    final lng = (i['lng'] as num).toDouble();
+                    final lat = double.tryParse(i['lat'].toString()) ?? 0.0;
+                    final lng = double.tryParse(i['lng'].toString()) ?? 0.0;
                     return Marker(
                       point: LatLng(lat, lng),
                       width: 44,
@@ -623,9 +623,9 @@ class _MapScreenState extends State<MapScreen> {
                                     ),
                                     onTap: () {
                                       final lat =
-                                          (e['lat'] as num?)?.toDouble();
+                                          double.tryParse(e['lat'].toString());
                                       final lng =
-                                          (e['lng'] as num?)?.toDouble();
+                                          double.tryParse(e['lng'].toString());
                                       if (lat != null && lng != null) {
                                         _mapController.move(
                                           LatLng(lat, lng),
@@ -703,10 +703,10 @@ class _MapScreenState extends State<MapScreen> {
                                         ),
                                       ),
                                       onTap: () {
-                                        final lat = (incident['lat'] as num?)
-                                            ?.toDouble();
-                                        final lng = (incident['lng'] as num?)
-                                            ?.toDouble();
+                                        final lat = double.tryParse(
+                                            incident['lat'].toString());
+                                        final lng = double.tryParse(
+                                            incident['lng'].toString());
                                         if (lat != null && lng != null) {
                                           _mapController.move(
                                             LatLng(lat, lng),

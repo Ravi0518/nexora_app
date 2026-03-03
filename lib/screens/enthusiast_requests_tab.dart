@@ -182,8 +182,8 @@ class _EnthusiastRequestsTabState extends State<EnthusiastRequestsTab> {
                       child: FlutterMap(
                         options: MapOptions(
                           initialCenter: LatLng(
-                            (req['lat'] as num).toDouble(),
-                            (req['lng'] as num).toDouble(),
+                            double.tryParse(req['lat'].toString()) ?? 0.0,
+                            double.tryParse(req['lng'].toString()) ?? 0.0,
                           ),
                           initialZoom: 15,
                           interactionOptions: const InteractionOptions(
@@ -200,8 +200,8 @@ class _EnthusiastRequestsTabState extends State<EnthusiastRequestsTab> {
                             markers: [
                               Marker(
                                 point: LatLng(
-                                  (req['lat'] as num).toDouble(),
-                                  (req['lng'] as num).toDouble(),
+                                  double.tryParse(req['lat'].toString()) ?? 0.0,
+                                  double.tryParse(req['lng'].toString()) ?? 0.0,
                                 ),
                                 width: 40,
                                 height: 40,
