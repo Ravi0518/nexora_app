@@ -265,11 +265,13 @@ class _MapScreenState extends State<MapScreen> {
                                                       final url = Uri.parse(
                                                         'tel:${e['phone']}',
                                                       );
-                                                      if (await canLaunchUrl(
-                                                          url)) {
+                                                      try {
                                                         await launchUrl(url,
                                                             mode: LaunchMode
                                                                 .externalApplication);
+                                                      } catch (e) {
+                                                        debugPrint(
+                                                            'Could not launch \$url');
                                                       }
                                                     },
                                                     icon: const Icon(
@@ -402,9 +404,13 @@ class _MapScreenState extends State<MapScreen> {
                                           final url = Uri.parse(
                                             'tel:${i['reporter_phone']}',
                                           );
-                                          if (await canLaunchUrl(url)) {
+                                          try {
                                             await launchUrl(url,
-                               mode: LaunchMode.externalApplication);
+                                                mode: LaunchMode
+                                                    .externalApplication);
+                                          } catch (e) {
+                                            debugPrint(
+                                                'Could not launch \$url');
                                           }
                                         },
                                         icon: const Icon(

@@ -346,9 +346,11 @@ class _EnthusiastDashboardTabState extends State<EnthusiastDashboardTab> {
                 child: ElevatedButton.icon(
                   onPressed: () async {
                     final url = Uri.parse('tel:$reporterPhone');
-                    if (await canLaunchUrl(url)) {
+                    try {
                       await launchUrl(url,
                           mode: LaunchMode.externalApplication);
+                    } catch (e) {
+                      debugPrint('Could not launch $url');
                     }
                   },
                   icon: const Icon(Icons.phone_in_talk_rounded),
