@@ -267,7 +267,9 @@ class _MapScreenState extends State<MapScreen> {
                                                       );
                                                       if (await canLaunchUrl(
                                                           url)) {
-                                                        await launchUrl(url);
+                                                        await launchUrl(url,
+                                                            mode: LaunchMode
+                                                                .externalApplication);
                                                       }
                                                     },
                                                     icon: const Icon(
@@ -339,6 +341,7 @@ class _MapScreenState extends State<MapScreen> {
                       width: 44,
                       height: 44,
                       child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
                         onTap: () {
                           showDialog(
                             context: context,
@@ -400,7 +403,8 @@ class _MapScreenState extends State<MapScreen> {
                                             'tel:${i['reporter_phone']}',
                                           );
                                           if (await canLaunchUrl(url)) {
-                                            await launchUrl(url);
+                                            await launchUrl(url,
+                               mode: LaunchMode.externalApplication);
                                           }
                                         },
                                         icon: const Icon(

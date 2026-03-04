@@ -345,7 +345,8 @@ class _EnthusiastDashboardTabState extends State<EnthusiastDashboardTab> {
                   onPressed: () async {
                     final url = Uri.parse('tel:$reporterPhone');
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url);
+                      await launchUrl(url,
+                          mode: LaunchMode.externalApplication);
                     }
                   },
                   icon: const Icon(Icons.phone_in_talk_rounded),
