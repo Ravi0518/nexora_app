@@ -18,6 +18,7 @@ class _EnthusiastDashboardTabState extends State<EnthusiastDashboardTab> {
   bool _isAvailable = false;
   List<Map<String, dynamic>> _activeRequests = [];
   List<Map<String, dynamic>> _catchReports = [];
+  BuildContext? _ctx; // stable context for dialogs
 
   @override
   void initState() {
@@ -73,6 +74,7 @@ class _EnthusiastDashboardTabState extends State<EnthusiastDashboardTab> {
 
   @override
   Widget build(BuildContext context) {
+    _ctx = context; // store for safe dialog usage
     final String name =
         widget.userData['full_name'] ?? widget.userData['fname'] ?? 'Expert';
 
@@ -385,7 +387,7 @@ class _EnthusiastDashboardTabState extends State<EnthusiastDashboardTab> {
         final incident = job['incident'] ?? job; // Fallback for diff shapes
 
         return GestureDetector(
-          onTap: () => _showJobDetails(context, incident),
+          onTap: () => _showJobDetails(_ctx ?? context, incident),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
