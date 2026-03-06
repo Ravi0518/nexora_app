@@ -6,7 +6,7 @@ class AuthService {
   // Use your Mac's Local IP (Run 'ifconfig' in terminal to find it)
   // 🔧 Use your Mac's WiFi IP (run: ipconfig getifaddr en0 in terminal)
   // ❌ 10.0.2.2 only works for Android Emulator, NOT real devices!
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'https://nexora.wisegen.lk/api';
 
   /// STEP 1: Send OTP to check email availability
   Future<Map<String, dynamic>> sendOTP(String email) async {
@@ -250,10 +250,9 @@ class AuthService {
     try {
       final headers = await getAuthHeaders();
       final prefs = await SharedPreferences.getInstance();
-      final String? userId = prefs.getString('user_id');
 
       final response = await http.delete(
-        Uri.parse('$baseUrl/user/delete/$userId'),
+        Uri.parse('$baseUrl/delete-account'),
         headers: headers,
       );
 

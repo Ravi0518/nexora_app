@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Centralized API service for Nexora app.
 /// Handles all data fetching: snakes, experts, incidents, rescue requests, facts.
 class NexoraApiService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'https://nexora.wisegen.lk/api';
 
   // ── AUTH HELPERS ────────────────────────────────────────────────────────────
 
@@ -196,6 +196,36 @@ class NexoraApiService {
     }
   }
 
+  /// POST /api/experts/location — Update location AND availability together.
+  /// Returns {success, statusCode, message} so callers can surface real errors.
+  static Future<Map<String, dynamic>> updateExpertLocationWithStatus(
+    double lat,
+    double lng, {
+    required bool isAvailable,
+  }) async {
+    try {
+      final headers = await _authHeaders();
+      final body = jsonEncode({
+        'lat': lat,
+        'lng': lng,
+        'is_available': isAvailable,
+      });
+      final res = await http.post(
+        Uri.parse('$baseUrl/experts/location'),
+        headers: headers,
+        body: body,
+      );
+      final decoded = jsonDecode(res.body) as Map<String, dynamic>? ?? {};
+      return {
+        'success': res.statusCode == 200,
+        'statusCode': res.statusCode,
+        'message': decoded['message'] ?? res.body,
+      };
+    } catch (e) {
+      return {'success': false, 'statusCode': 0, 'message': e.toString()};
+    }
+  }
+
   // ════════════════════════════════════════════════════════════════════════════
   // 4. INCIDENTS
   // ════════════════════════════════════════════════════════════════════════════
@@ -254,7 +284,14 @@ class NexoraApiService {
         headers: await _authHeaders(),
       );
       if (res.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(jsonDecode(res.body));
+        final decoded = jsonDecode(res.body);
+        // Handle paginated response { data: [...] } or plain list
+        if (decoded is Map && decoded['data'] is List) {
+          return List<Map<String, dynamic>>.from(decoded['data']);
+        }
+        if (decoded is List) {
+          return List<Map<String, dynamic>>.from(decoded);
+        }
       }
       return [];
     } catch (e) {

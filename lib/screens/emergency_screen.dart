@@ -8,10 +8,11 @@ class EmergencyScreen extends StatelessWidget {
 
   // දුරකථන ඇමතුම් ලබාගැනීමේ function එක
   Future<void> _makeCall(String number) async {
-    final Uri url = Uri.parse("tel:$number");
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    }
+    // Use Uri constructor (not parse) to prevent Android treating leading '1' as country code
+    final Uri url = Uri(scheme: 'tel', path: number);
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {}
   }
 
   @override
@@ -21,7 +22,10 @@ class EmergencyScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF0A120A),
       appBar: AppBar(
-        title: Text(lang == 'si' ? "හදිසි සහාය" : (lang == 'ta' ? "அவசர உதவி" : "Emergency Help"),
+        title: Text(
+            lang == 'si'
+                ? "හදිසි සහාය"
+                : (lang == 'ta' ? "அவசர உதவி" : "Emergency Help"),
             style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -31,21 +35,30 @@ class EmergencyScreen extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 100),
+            const Icon(Icons.warning_amber_rounded,
+                color: Colors.redAccent, size: 100),
             const SizedBox(height: 30),
 
             Text(
-              lang == 'si' ? "ප්‍රමාද නොවන්න! වහාම අමතන්න." :
-              (lang == 'ta' ? "தாமதிக்க வேண்டாம்! உடனே அழையுங்கள்." : "Do not delay! Call immediately."),
+              lang == 'si'
+                  ? "ප්‍රමාද නොවන්න! වහාම අමතන්න."
+                  : (lang == 'ta'
+                      ? "தாமதிக்க வேண்டாம்! உடனே அழையுங்கள்."
+                      : "Do not delay! Call immediately."),
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
 
             // --- 1. SUWA SERIYA AMBULANCE (1990) ---
             _emergencyCard(
               title: "1990: Suwa Seriya",
-              subtitle: lang == 'si' ? "නොමිලේ ගිලන්රථ සේවාව" : "Free Ambulance Service",
+              subtitle: lang == 'si'
+                  ? "නොමිලේ ගිලන්රථ සේවාව"
+                  : "Free Ambulance Service",
               icon: Icons.medical_services,
               color: Colors.redAccent,
               onTap: () => _makeCall("1990"),
@@ -56,7 +69,9 @@ class EmergencyScreen extends StatelessWidget {
             // --- 2. POLICE EMERGENCY (119) ---
             _emergencyCard(
               title: "119: Police Emergency",
-              subtitle: lang == 'si' ? "පොලිස් හදිසි ඇමතුම්" : "Sri Lanka Police Hotline",
+              subtitle: lang == 'si'
+                  ? "පොලිස් හදිසි ඇමතුම්"
+                  : "Sri Lanka Police Hotline",
               icon: Icons.local_police,
               color: Colors.blueAccent,
               onTap: () => _makeCall("119"),
@@ -77,11 +92,14 @@ class EmergencyScreen extends StatelessWidget {
                   const SizedBox(width: 15),
                   Expanded(
                     child: Text(
-                      lang == 'si' ? "ප්‍රථමාධාර උපදෙස් බලන්න" : "View First Aid Guidelines",
+                      lang == 'si'
+                          ? "ප්‍රථමාධාර උපදෙස් බලන්න"
+                          : "View First Aid Guidelines",
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
+                  const Icon(Icons.arrow_forward_ios,
+                      color: Colors.white24, size: 16),
                 ],
               ),
             ),
@@ -92,13 +110,12 @@ class EmergencyScreen extends StatelessWidget {
     );
   }
 
-  Widget _emergencyCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap
-  }) {
+  Widget _emergencyCard(
+      {required String title,
+      required String subtitle,
+      required IconData icon,
+      required Color color,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -120,8 +137,14 @@ class EmergencyScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
+                  Text(subtitle,
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 13)),
                 ],
               ),
             ),

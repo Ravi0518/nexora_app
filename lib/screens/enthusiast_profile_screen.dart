@@ -27,7 +27,6 @@ class _EnthusiastProfileScreenState extends State<EnthusiastProfileScreen> {
   late String _exp;
 
   bool _isEditing = false;
-  bool _isAvailable = true;
   bool _isLoadingProfile = true;
 
   late TextEditingController _nameCtrl;
@@ -74,9 +73,6 @@ class _EnthusiastProfileScreenState extends State<EnthusiastProfileScreen> {
         _phone = data['phone'] ?? _phone;
         _org = data['affiliation'] ?? _org;
         _exp = data['experience_years']?.toString() ?? _exp;
-        _isAvailable =
-            data['is_available'] == 1 || data['is_available'] == true;
-
         _nameCtrl.text = _name;
         _phoneCtrl.text = _phone;
         _orgCtrl.text = _org;
@@ -126,12 +122,6 @@ class _EnthusiastProfileScreenState extends State<EnthusiastProfileScreen> {
     Navigator.pushReplacementNamed(context, '/login');
   }
 
-  Future<void> _toggleAvailability(bool val) async {
-    setState(() => _isAvailable = val);
-    // API Call to update status
-    await NexoraApiService.updateExpertStatus(val);
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoadingProfile) {
@@ -145,6 +135,7 @@ class _EnthusiastProfileScreenState extends State<EnthusiastProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF07120B),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text('Expert Profile',
             style: const TextStyle(
                 fontWeight: FontWeight.bold, color: Colors.white)),
@@ -186,49 +177,6 @@ class _EnthusiastProfileScreenState extends State<EnthusiastProfileScreen> {
                   Text('Level: Expert Rescuer',
                       style: const TextStyle(
                           color: Color(0xFF00FF66), fontSize: 14)),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // Availability Toggle
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                  color: _isAvailable
-                      ? const Color(0xFF132A1C)
-                      : const Color(0xFF2A1313),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: _isAvailable
-                          ? const Color(0xFF00FF66)
-                          : Colors.redAccent,
-                      width: 2)),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Rescue Availability',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
-                      Text(
-                          _isAvailable
-                              ? 'Receiving Dispatches'
-                              : 'Currently Offline',
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 12)),
-                    ],
-                  ),
-                  Switch(
-                    value: _isAvailable,
-                    onChanged: _toggleAvailability,
-                    activeColor: const Color(0xFF00FF66),
-                    inactiveThumbColor: Colors.redAccent,
-                  )
                 ],
               ),
             ),

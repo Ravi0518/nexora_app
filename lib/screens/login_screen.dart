@@ -38,6 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (res['success']) {
       if (res['role'] == 'admin') {
         Navigator.pushReplacementNamed(context, '/admin-dashboard');
+      } else if (res['role'] == 'enthusiast') {
+        Navigator.pushReplacementNamed(context, '/enthusiast-home');
       } else {
         Navigator.pushReplacementNamed(context, '/home');
       }

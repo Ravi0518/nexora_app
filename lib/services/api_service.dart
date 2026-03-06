@@ -12,7 +12,7 @@ import 'dart:io';
 class ApiService {
   // English: Your Azure API Endpoint
   final String _azureUrl =
-      "http://snake-api-eshan123.azurewebsites.net/predict";
+      "https://snake-api-eshan123.azurewebsites.net/predict";
   final Dio _dio = Dio();
 
   Future<Map<String, dynamic>?> identifySnake(File imageFile) async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/nexora_api_service.dart';
 
 /// Nearby Rescuers Screen — shown after submitting an incident.
@@ -197,7 +198,7 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
   }
 
   Widget _buildExpertCard(Map<String, dynamic> expert) {
-    // API shape: { user_id, fname, lname, distance }
+    // API shape: { user_id, fname, lname, distance, phone, is_available }
     final userId = expert['user_id'];
     final name = '${expert['fname'] ?? ''} ${expert['lname'] ?? ''}'.trim();
     final distKm = expert['distance'] ?? expert['distance_km'];
@@ -206,6 +207,11 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
     final distStr = distKmVal != null
         ? '${distKmVal.toStringAsFixed(2)} km away'
         : '? km away';
+    final isAvailable =
+        (expert['is_available'] == 1 || expert['is_available'] == true);
+    final statusColor =
+        isAvailable ? const Color(0xFF00FF66) : Colors.orangeAccent;
+    final phone = expert['phone']?.toString() ?? '';
 
     final isAssigning = _assigningId == userId;
     final canAssign = widget.incidentId != null && userId != null;
@@ -216,72 +222,140 @@ class _NearbyRescuersScreenState extends State<NearbyRescuersScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF131A14),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: isAvailable
+                ? const Color(0xFF00FF66).withValues(alpha: 0.25)
+                : Colors.white10),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: const Color(0xFF0A140A),
-            backgroundImage: expert['profile_image_url'] != null
-                ? NetworkImage(expert['profile_image_url']) as ImageProvider
-                : null,
-            child: expert['profile_image_url'] == null
-                ? const Icon(Icons.person, color: Color(0xFF00FF66))
-                : null,
-          ),
-          const SizedBox(width: 14),
+          Row(
+            children: [
+              // Avatar
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: const Color(0xFF0A140A),
+                backgroundImage: expert['profile_image_url'] != null
+                    ? NetworkImage(expert['profile_image_url']) as ImageProvider
+                    : null,
+                child: expert['profile_image_url'] == null
+                    ? const Icon(Icons.person, color: Color(0xFF00FF66))
+                    : null,
+              ),
+              const SizedBox(width: 14),
 
-          // Name + distance
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name.isNotEmpty ? name : 'Enthusiast',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15),
-                ),
-                const SizedBox(height: 4),
-                Row(
+              // Name + distance
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.location_on_outlined,
-                        size: 13, color: Color(0xFF00FF66)),
-                    const SizedBox(width: 4),
-                    Text(distStr,
-                        style: const TextStyle(
-                            color: Colors.white38, fontSize: 12)),
+                    Text(
+                      name.isNotEmpty ? name : 'Enthusiast',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined,
+                            size: 13, color: Color(0xFF00FF66)),
+                        const SizedBox(width: 4),
+                        Text(distStr,
+                            style: const TextStyle(
+                                color: Colors.white38, fontSize: 12)),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+
+              // Status badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  isAvailable ? 'Available' : 'Offline',
+                  style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
 
-          // Request Help button (only when incidentId is set)
-          if (canAssign)
-            isAssigning
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                        color: Color(0xFF00FF66), strokeWidth: 2))
-                : ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00FF66),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
+          // Phone / call row
+          if (phone.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () async {
+                try {
+                  await launchUrl(Uri.parse('tel:$phone'),
+                      mode: LaunchMode.externalApplication);
+                } catch (_) {}
+              },
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00FF66).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: const Color(0xFF00FF66).withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.phone_rounded,
+                        color: Color(0xFF00FF66), size: 16),
+                    const SizedBox(width: 10),
+                    Text(phone,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 13)),
+                    const Spacer(),
+                    const Text('Tap to call',
+                        style:
+                            TextStyle(color: Color(0xFF00FF66), fontSize: 11)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          // Request Help button
+          if (canAssign) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: isAssigning
+                  ? const Center(
+                      child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                              color: Color(0xFF00FF66), strokeWidth: 2)))
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00FF66),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      onPressed: () => _assign(expert),
+                      child: const Text('Request Help',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
-                    onPressed: () => _assign(expert),
-                    child: const Text('Request',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13)),
-                  ),
+            ),
+          ],
         ],
       ),
     );

@@ -9,6 +9,7 @@ class IDResultScreen extends StatefulWidget {
   final Map<String, dynamic> snakeData;
   final String currentLang;
   final double confidenceScore;
+  final bool isLowConfidence;
 
   /// Optional: pass the snake's numeric ID directly (e.g. from collection screen)
   /// to trigger GET /api/snakes/{id} immediately.
@@ -22,6 +23,7 @@ class IDResultScreen extends StatefulWidget {
     required this.snakeData,
     required this.currentLang,
     required this.confidenceScore,
+    this.isLowConfidence = false,
     this.snakeId,
     this.imagePath,
   });
@@ -104,11 +106,31 @@ class _IDResultScreenState extends State<IDResultScreen> {
       return;
     }
 
-    // ── CASE C: CNN top_prediction flow ────────────────────────────────────
-    final topPrediction = widget.snakeData['top_prediction'];
-    final String topSpecies = topPrediction?['species']?.toString() ?? '';
+    // ── CASE C: CNN response flow ──────────────────────────────────────────────
+    final String topSpecies = widget.snakeData['species']?.toString() ??
+        widget.snakeData['top_prediction']?['species']?.toString() ??
+        '';
 
-    // 1. Try class_id from predictions list first (most reliable)
+    // 1. Try species_id directly from the new API format
+    final newApiId = widget.snakeData['species_id'];
+    if (newApiId != null) {
+      final int? classId =
+          newApiId is int ? newApiId : int.tryParse(newApiId.toString());
+      if (classId != null) {
+        try {
+          final result = await NexoraApiService.getSnakeById(classId);
+          if (result != null && result.isNotEmpty) {
+            setState(() {
+              _snake = result;
+              _isLoading = false;
+            });
+            return;
+          }
+        } catch (_) {}
+      }
+    }
+
+    // 2. Fallback to old predictions list if species_id wasn't there
     final predList = widget.snakeData['predictions'];
     if (predList is List && predList.isNotEmpty) {
       final rawId = predList[0]['class_id'];
@@ -130,7 +152,8 @@ class _IDResultScreenState extends State<IDResultScreen> {
       }
     }
 
-    // 2. Try ID from top_prediction if server included it
+    // 3. Fallback to top_prediction 'id' if available (old fallback rule)
+    final topPrediction = widget.snakeData['top_prediction'];
     final rawId = topPrediction?['id'];
     if (rawId != null) {
       final int? snakeId =
@@ -195,16 +218,11 @@ class _IDResultScreenState extends State<IDResultScreen> {
     }
   }
 
-  // ── URL FIX (Android emulator) ───────────────────────────────────────────────
-  /// On the Android emulator, 127.0.0.1 and localhost resolve to the emulator's
-  /// own loopback. Replace with 10.0.2.2 which routes to the host machine.
+  // ── URL FIX (Removed) ──────────────────────────────────────────────────────
+  /// Images are now served directly from the hosted Wisegen backend,
+  /// no emulator IP rewrite needed.
   String _fixUrl(String url) {
-    var fixed = url
-        .replaceFirst('http://127.0.0.1:8000', 'http://10.0.2.2:8000')
-        .replaceFirst('http://127.0.0.1', 'http://10.0.2.2')
-        .replaceFirst('http://localhost:8000', 'http://10.0.2.2:8000')
-        .replaceFirst('http://localhost', 'http://10.0.2.2');
-    return fixed;
+    return url;
   }
 
   // ── IMAGE SOURCES ────────────────────────────────────────────────────────────
@@ -232,6 +250,7 @@ class _IDResultScreenState extends State<IDResultScreen> {
     // If nothing found, use local asset fallback
     if (imgs.isEmpty) {
       final speciesSlug = (_snake?['id'] ??
+              widget.snakeData['species'] ??
               widget.snakeData['top_prediction']?['species'] ??
               '')
           .toString()
@@ -261,7 +280,9 @@ class _IDResultScreenState extends State<IDResultScreen> {
     }();
 
     final String commonName = _fromMap(_snake?['names'],
-        fallback: widget.snakeData['top_prediction']?['species'] ?? 'Unknown');
+        fallback: widget.snakeData['species'] ??
+            widget.snakeData['top_prediction']?['species'] ??
+            'Unknown');
 
     final String scientificName = (_snake?['scientific_name'] ?? '').toString();
 
@@ -337,6 +358,45 @@ class _IDResultScreenState extends State<IDResultScreen> {
                             Icons.check_circle,
                           ),
                         ]),
+
+                        // ── LOW CONFIDENCE WARNING BANNER ─────────────────────
+                        if (widget.isLowConfidence) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.orangeAccent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: Colors.orangeAccent
+                                      .withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.warning_amber_rounded,
+                                    color: Colors.orangeAccent, size: 20),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _localise(
+                                      'Low AI confidence. The actual snake may differ from this result. Do not rely entirely on this identification.',
+                                      'AI විශ්වාසය අඩුයි. සැබෑ සර්පයා මෙම ප්‍රතිඵලයට වඩා වෙනස් විය හැක. සම්පූර්ණයෙන්ම මෙය මත විශ්වාසය තබන්න එපා.',
+                                      'AI நம்பகத்தன்மை குறைவு. உண்மையான பாம்பு இந்த முடிவிலிருந்து வேறுபடலாம். இதை முழுமையாக நம்ப வேண்டாம்.',
+                                    ),
+                                    style: const TextStyle(
+                                      color: Colors.orangeAccent,
+                                      fontSize: 13,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
 
                         const SizedBox(height: 14),
 

@@ -258,11 +258,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
     final venomousRaw = snake['is_venomous'];
     final isVenomous =
         venomousRaw == true || venomousRaw == 'true' || venomousRaw == 1;
-    final rawImageUrl = snake['image_url']?.toString();
-    // Rewrite 127.0.0.1 → 10.0.2.2 for Android emulator compatibility
-    final imageUrl = rawImageUrl != null
-        ? rawImageUrl.replaceFirst('http://127.0.0.1', 'http://10.0.2.2')
-        : null;
+    final imageUrl = snake['image_url']?.toString();
 
     return GestureDetector(
       onTap: () {

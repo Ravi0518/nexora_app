@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'id_result_screen.dart';
+import 'scan_warning_screen.dart';
 
 /// Scan Screen — Live camera viewfinder with AI identification.
 class ScanScreen extends StatefulWidget {
@@ -72,7 +73,15 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
 
     try {
       _cameras = await availableCameras();
-      if (_cameras.isEmpty) return;
+      if (_cameras.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _isCameraReady = true; // prevent infinite loading loop
+        });
+        _showError(_t('No camera found on this device', 'කැමරාවක් හමු නොවීය',
+            'கேமரா கண்டறியப்படவில்லை'));
+        return;
+      }
 
       final controller = CameraController(
         _cameras[cameraIdx],
@@ -140,7 +149,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
     setState(() => _isProcessing = true);
     try {
       final formData = FormData.fromMap({
-        "image": await MultipartFile.fromFile(
+        "file": await MultipartFile.fromFile(
           imageFile.path,
           filename: imageFile.path.split('/').last,
         ),
@@ -161,21 +170,60 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
 
       if (response.statusCode == 200 && mounted) {
         final data = response.data;
-        if (data == null || data['top_prediction'] == null) {
+        if (data == null) {
           throw Exception("Invalid data format from AI API");
         }
 
-        // The CNN API returns class_id inside predictions[0], not in top_prediction.
-        // We use it to fetch the correct snake from the Laravel /api/snakes/{id}.
-        int? snakeId;
-        final predictions = data['predictions'];
-        if (predictions is List && predictions.isNotEmpty) {
-          final first = predictions[0];
-          final rawId = first['class_id'];
-          if (rawId != null) {
-            snakeId = rawId is int ? rawId : int.tryParse(rawId.toString());
-          }
+        // 1. Check if the API explicitly rejected the image
+        if (data['status'] == 'REJECTED') {
+          final rawReason = data['reason']?.toString() ?? 'Unknown reason';
+          final reason = _t(
+            rawReason,
+            'ඔබේ ඡායාරූපය හඳුනාගැනීම ප්‍රතික්ෂේප කර ඇත: $rawReason.',
+            'உங்கள் புகைப்படம் நிராகரிக்கப்பட்டது: $rawReason.',
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ScanWarningScreen(
+                message: reason,
+                lang: widget.lang,
+              ),
+            ),
+          );
+          return;
         }
+
+        // 2. Check if the snake probability is too low (< 70%)
+        final double snakeProb = (data['snake_prob'] ?? 1.0).toDouble();
+        if (snakeProb < 0.70) {
+          final reason = _t(
+            'No snake detected in this image. Please capture a clear image of the snake.',
+            'මෙම ඡායාරූපයේ සර්පයෙකු හඳුනාගත නොහැක. කරුණාකර පැහැදිලි ඡායාරූපයක් ගන්න.',
+            'இந்த படத்தில் பாம்பு எதுவும் கண்டறியப்படவில்லை. தயவுசெய்து தெளிவான புகைப்படத்தை எடுக்கவும்.',
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ScanWarningScreen(
+                message: reason,
+                lang: widget.lang,
+              ),
+            ),
+          );
+          return;
+        }
+
+        // 3. We have a valid snake detection
+        int? snakeId;
+        final rawId = data['species_id'];
+        if (rawId != null) {
+          snakeId = rawId is int ? rawId : int.tryParse(rawId.toString());
+        }
+
+        final double confidenceScore =
+            (data['confidence'] ?? 0.0).toDouble() * 100.0;
+        final bool isLowConfidence = confidenceScore < 80.0;
 
         Navigator.push(
           context,
@@ -183,11 +231,10 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
             builder: (_) => IDResultScreen(
               snakeData: data,
               currentLang: widget.lang,
-              confidenceScore:
-                  (data['top_prediction']['confidence'] ?? 0.0).toDouble(),
+              confidenceScore: confidenceScore,
+              isLowConfidence: isLowConfidence,
               snakeId: snakeId,
-              imagePath: imageFile
-                  .path, // Passed to ID result screen so it can be passed to Report Incident
+              imagePath: imageFile.path,
             ),
           ),
         );
@@ -243,6 +290,30 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
   // ── 1. CAMERA PREVIEW ────────────────────────────────────────────────────────
   Widget _buildCameraPreview() {
     final controller = _cameraController;
+    if (_cameras.isEmpty && _isCameraReady) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.no_photography_outlined,
+                  color: Colors.white54, size: 60),
+              const SizedBox(height: 16),
+              Text(
+                _t(
+                    "No camera available.\nPlease use the Gallery option.",
+                    "කැමරාවක් හමු නොවීය.\nගැලරිය භාවිතා කරන්න.",
+                    "கேமரா கண்டறியப்படவில்லை.\nகேலரியைப் பயன்படுத்தவும்."),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white54, fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (!_isCameraReady ||
         controller == null ||
         !controller.value.isInitialized) {
@@ -392,8 +463,8 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 16),
           Text(
-            _t('Position the snake inside the frame', 'නාය රාමුව ඇතුළේ තබන්න',
-                'பாம்பை சட்டத்தினுள் வைக்கவும்'),
+            _t('Position the snake inside the frame',
+                'සර්පයා රාමුව ඇතුළේ තබන්න', 'பாம்பை சட்டத்தினுள் வைக்கவும்'),
             style: const TextStyle(color: Colors.white60, fontSize: 14),
             textAlign: TextAlign.center,
           ),

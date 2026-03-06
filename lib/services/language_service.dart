@@ -50,6 +50,7 @@ class LanguageService {
       'email_invalid': 'Invalid email',
       'pass_min': 'Min. 8 characters',
       'pass_short': 'Password too short',
+      'pass_complex': 'Must have 8+ chars, 1 uppercase, 1 lowercase & 1 number',
       'get_code': 'Get Verification Code',
       'already_account': 'Already have an account? ',
       'log_in': 'Log In',
@@ -70,6 +71,7 @@ class LanguageService {
       'verify_btn': 'Verify & Create Account',
       'resend_otp': "Didn't receive the code? Resend OTP",
       'otp_resent': 'OTP has been resent!',
+      'account_activated': 'Your account has been successfully created!',
 
       // ---- HOME SCREEN ----
       'welcome': 'Welcome back,',
@@ -165,6 +167,7 @@ class LanguageService {
       'email_invalid': 'වලංගු නොවන විද්‍යුත් තැපෑල',
       'pass_min': 'අවම. අකුරු 8ක්',
       'pass_short': 'මුරපදය ඉතා කෙටියි',
+      'pass_complex': 'අවම. අකුරු 8ක්, 1ක් කැපිටල්, 1ක් සිම්පල් සහ 1ක් අංකයක්',
       'get_code': 'තහවුරු කේතය ලබාගන්න',
       'already_account': 'දැනටමත් ගිණුමක් තිබේද? ',
       'log_in': 'පිවිසෙන්න',
@@ -184,6 +187,7 @@ class LanguageService {
       'verify_btn': 'තහවුරු කරන්න & ගිණුම සාදන්න',
       'resend_otp': "කේතය ලැබුණේ නැද්ද? නැවත යවන්න",
       'otp_resent': 'OTP කේතය නැවත යවන ලදි!',
+      'account_activated': 'ඔබේ ගිණුම සාර්ථකව සෑදින!',
 
       // ---- HOME SCREEN ----
       'welcome': 'ආයුබෝවන්,',
@@ -197,12 +201,12 @@ class LanguageService {
       'identify': 'හඳුනාගන්න',
       'collection': 'එකතුව',
       'profile': 'පැතිකඩ',
-      'identify_a_snake': 'නාය හඳුනාගන්න',
-      'scan_subtitle': 'නාය සෙවීමට රාමුව ඇතුළේ තබා ස්කෑන් කරන්න.',
+      'identify_a_snake': 'සර්පයා හඳුනාගන්න',
+      'scan_subtitle': 'සර්පයා සෙවීමට රාමුව ඇතුළේ තබා ස්කෑන් කරන්න.',
       'quick_services': 'ශීඝ්‍ර සේවා',
       'view_past_identifications': 'පෙර හඳුනාගැනීම් බලන්න',
       'report_incident': 'සිදුවීමක් වාර්තා කරන්න',
-      'report_snake_subtitle': 'නාය දර්ශනයක් හෝ සිදුවීමක් වාර්තා කරන්න',
+      'report_snake_subtitle': 'සර්ප දර්ශනයක් හෝ සිදුවීමක් වාර්තා කරන්න',
       'did_you_know': 'ඔබ දන්නවාද?',
       'dismiss': 'ඉවත් කරන්න',
       'experts': 'විශේෂඥයන්',
@@ -278,6 +282,7 @@ class LanguageService {
       'email_invalid': 'தவறான மின்னஞ்சல்',
       'pass_min': 'குறைந்தது 8 எழுத்துக்கள்',
       'pass_short': 'கடவுச்சொல் மிகவும் குறைவாக உள்ளது',
+      'pass_complex': 'குறைந்தது 8 எழுத்துக்கள், 1 பெரிய, 1 சிறிய, 1 எண் தேவை',
       'get_code': 'சரிபார்ப்பு குறியீட்டைப் பெறுங்கள்',
       'already_account': 'ஏற்கனவே கணக்கு உள்ளதா? ',
       'log_in': 'உள்நுழைக',
@@ -299,6 +304,7 @@ class LanguageService {
       'verify_btn': 'சரிபாரிக்கவும் & கணக்கை உருவாக்கவும்',
       'resend_otp': "குறியீடு கிடைக்கவில்லையா? மீண்டும் அனுப்பு",
       'otp_resent': 'OTP மீண்டும் அனுப்பப்பட்டது!',
+      'account_activated': 'உங்கள் கணக்கு வெற்றிகரமாக உருவாக்கப்பட்டது!',
 
       // ---- HOME SCREEN ----
       'welcome': 'வரவேற்கிறோம்,',

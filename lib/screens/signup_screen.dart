@@ -155,10 +155,23 @@ class _SignupScreenState extends State<SignupScreen> {
               const SizedBox(height: 20),
 
               _label(_t('password')),
-              _field(_passController, _t('pass_min'), Icons.lock_outline,
-                  isPass: true,
-                  validator: (v) =>
-                      (v != null && v.length < 8) ? _t('pass_short') : null),
+              _field(
+                _passController,
+                _t('pass_min'),
+                Icons.lock_outline,
+                isPass: true,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return _t('pass_short');
+                  final hasMinLength = v.length >= 8;
+                  final hasUpper = RegExp(r'[A-Z]').hasMatch(v);
+                  final hasLower = RegExp(r'[a-z]').hasMatch(v);
+                  final hasNumber = RegExp(r'[0-9]').hasMatch(v);
+                  if (!hasMinLength || !hasUpper || !hasLower || !hasNumber) {
+                    return _t('pass_complex');
+                  }
+                  return null;
+                },
+              ),
 
               if (_selectedRole == 'enthusiast') ...[
                 const SizedBox(height: 30),

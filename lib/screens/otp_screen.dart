@@ -40,7 +40,7 @@ class _OTPScreenState extends State<OTPScreen> {
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(_t('reset_sent')),
+            content: Text(_t('account_activated')),
             backgroundColor: const Color(0xFF00FF66)),
       );
     } else {

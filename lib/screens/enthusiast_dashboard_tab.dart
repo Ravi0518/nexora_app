@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'map_screen.dart';
 import '../services/nexora_api_service.dart';
+import '../services/location_service.dart';
 
 class EnthusiastDashboardTab extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -51,22 +52,66 @@ class _EnthusiastDashboardTabState extends State<EnthusiastDashboardTab> {
   }
 
   Future<void> _toggleAvailability(bool value) async {
-    final success = await NexoraApiService.updateExpertStatus(value);
-    if (success && mounted) {
+    // Push GPS + availability in  Future<void> _toggleAvailability(bool value) async {
+    bool success = false;
+    bool hasLocation = false;
+    String errorMsg = 'Failed to update status';
+
+    try {
+      final pos = await LocationService.getCurrentLocation();
+      if (pos != null) {
+        hasLocation = true;
+        final result = await NexoraApiService.updateExpertLocationWithStatus(
+          pos.latitude,
+          pos.longitude,
+          isAvailable: value,
+        );
+        success = result['success'] == true;
+        if (!success) {
+          errorMsg = '[${result['statusCode']}] ${result['message']}';
+        }
+      } else {
+        // No GPS — status only
+        success = await NexoraApiService.updateExpertStatus(value);
+      }
+    } catch (e) {
+      errorMsg = e.toString();
+      success = await NexoraApiService.updateExpertStatus(value);
+    }
+
+    if (!mounted) return;
+
+    if (success) {
       setState(() => _isAvailable = value);
+      if (value && !hasLocation) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '⚠️ You are online but your location could not be shared. '
+              'Please enable GPS and toggle again.',
+            ),
+            backgroundColor: Colors.orangeAccent,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(value ? 'You are now online 📍' : 'You are now offline'),
+            backgroundColor:
+                value ? const Color(0xFF00FF66) : Colors.orangeAccent,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      // Show actual server error so we can debug
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(value ? 'You are now online' : 'You are now offline'),
-          backgroundColor:
-              value ? const Color(0xFF00FF66) : Colors.orangeAccent,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to update status'),
+          content: Text(errorMsg),
           backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 6),
         ),
       );
     }
@@ -263,117 +308,430 @@ class _EnthusiastDashboardTabState extends State<EnthusiastDashboardTab> {
     );
   }
 
+  Future<void> _openGoogleMaps(double lat, double lng, String label) async {
+    final uri =
+        Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Could not open Google Maps: $e');
+    }
+  }
+
+  Future<void> _callReporter(String phone) async {
+    final uri = Uri.parse('tel:$phone');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Could not launch dialer: $e');
+    }
+  }
+
   void _showJobDetails(BuildContext context, Map<String, dynamic> incident) {
     final imgPath = incident['image_path'];
-    final reporterPhone = incident['reporter_phone'];
+    final reporterPhone = incident['reporter_phone']?.toString() ?? '';
+    final locationName = incident['location_name'] ?? 'Unknown Location';
+    final description = incident['description'] ?? 'No details provided.';
+    final lat = double.tryParse(incident['lat']?.toString() ?? '');
+    final lng = double.tryParse(incident['lng']?.toString() ?? '');
+    final incidentType = incident['incident_type']?.toString() ?? '';
 
-    showDialog(
+    final String imageUrl = imgPath != null
+        ? '${NexoraApiService.baseUrl}/../storage/$imgPath'
+        : '';
+
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF131A14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Assigned Job Details',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (imgPath != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  '${NexoraApiService.baseUrl}/../storage/$imgPath',
-                  height: 150,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 150,
-                    width: double.infinity,
-                    color: Colors.white10,
-                    child: const Icon(Icons.image_not_supported,
-                        color: Colors.white54, size: 40),
-                  ),
-                ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.88,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (_, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF0E1512),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
-            const SizedBox(height: 15),
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(ctx);
-                final lat = double.tryParse(incident['lat']?.toString() ?? '');
-                final lng = double.tryParse(incident['lng']?.toString() ?? '');
-                if (lat != null && lng != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MapScreen(
-                        activeIncidentId: incident['incident_id'],
-                        incidentLat: lat,
-                        incidentLng: lng,
+              child: Column(
+                children: [
+                  // --- drag handle ---
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12, bottom: 6),
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                  );
-                }
-              },
-              child: Row(
-                children: [
-                  const Icon(Icons.location_on,
-                      color: Colors.orangeAccent, size: 20),
-                  const SizedBox(width: 8),
+                  ),
+
                   Expanded(
-                    child: Text(
-                      incident['location_name'] ?? 'Unknown Location',
-                      style: const TextStyle(
-                          color: Colors.orangeAccent,
-                          decoration: TextDecoration.underline,
-                          fontSize: 15),
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+                      children: [
+                        // ── Header ──────────────────────────────────────
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color:
+                                    Colors.orangeAccent.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.assignment_late_outlined,
+                                  color: Colors.orangeAccent, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                'Assigned Job Request',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            if (incidentType.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: incidentType.toLowerCase() == 'bite'
+                                      ? Colors.red.withValues(alpha: 0.2)
+                                      : Colors.orangeAccent
+                                          .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: incidentType.toLowerCase() == 'bite'
+                                        ? Colors.redAccent
+                                        : Colors.orangeAccent,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  incidentType.toUpperCase(),
+                                  style: TextStyle(
+                                    color: incidentType.toLowerCase() == 'bite'
+                                        ? Colors.redAccent
+                                        : Colors.orangeAccent,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        // ── Image ────────────────────────────────────────
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: imageUrl.isNotEmpty
+                              ? Image.network(
+                                  imageUrl,
+                                  height: 200,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (_, child, progress) =>
+                                      progress == null
+                                          ? child
+                                          : Container(
+                                              height: 200,
+                                              color: Colors.white10,
+                                              child: const Center(
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  color: Color(0xFF00FF66),
+                                                ),
+                                              ),
+                                            ),
+                                  errorBuilder: (_, __, ___) =>
+                                      _noImagePlaceholder(),
+                                )
+                              : _noImagePlaceholder(),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // ── Location ─────────────────────────────────────
+                        _sectionLabel('Location'),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () {
+                            if (lat != null && lng != null) {
+                              _openGoogleMaps(lat, lng, locationName);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF131A14),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                  color: Colors.orangeAccent
+                                      .withValues(alpha: 0.4)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.location_on_rounded,
+                                    color: Colors.orangeAccent, size: 22),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        locationName,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      if (lat != null && lng != null) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}',
+                                          style: const TextStyle(
+                                              color: Colors.white38,
+                                              fontSize: 11),
+                                        ),
+                                      ]
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orangeAccent
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.open_in_new_rounded,
+                                    color: Colors.orangeAccent,
+                                    size: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        // ── Description ───────────────────────────────────
+                        _sectionLabel('Description'),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF131A14),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: Text(
+                            description,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              height: 1.6,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        // ── Contact Details ───────────────────────────────
+                        if (reporterPhone.isNotEmpty) ...[
+                          _sectionLabel('Contact Details'),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => _callReporter(reporterPhone),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF131A14),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                    color: const Color(0xFF00FF66)
+                                        .withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF00FF66)
+                                          .withValues(alpha: 0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                        Icons.phone_in_talk_rounded,
+                                        color: Color(0xFF00FF66),
+                                        size: 20),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Reporter Phone',
+                                          style: TextStyle(
+                                              color: Colors.white54,
+                                              fontSize: 11),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          reporterPhone,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF00FF66)
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: const Color(0xFF00FF66)
+                                              .withValues(alpha: 0.4)),
+                                    ),
+                                    child: const Text(
+                                      'Call',
+                                      style: TextStyle(
+                                          color: Color(0xFF00FF66),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                        ] else ...[
+                          const SizedBox(height: 28),
+                        ],
+
+                        // ── Accept Button ─────────────────────────────────
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(sheetCtx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Job accepted! On your way.'),
+                                  backgroundColor: Color(0xFF00FF66),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.check_circle_outline_rounded,
+                                size: 20),
+                            label: const Text(
+                              'Accept Job',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00FF66),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // ── Decline / Close ───────────────────────────────
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(sheetCtx),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: const BorderSide(
+                                    color: Colors.white24, width: 1),
+                              ),
+                            ),
+                            child: const Text(
+                              'Close',
+                              style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              incident['description'] ?? 'No details provided.',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            if (reporterPhone != null &&
-                reporterPhone.toString().isNotEmpty) ...[
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final url = Uri.parse('tel:$reporterPhone');
-                    try {
-                      await launchUrl(url,
-                          mode: LaunchMode.externalApplication);
-                    } catch (e) {
-                      debugPrint('Could not launch $url');
-                    }
-                  },
-                  icon: const Icon(Icons.phone_in_talk_rounded),
-                  label: Text('Contact Reporter: $reporterPhone'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00FF66),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ]
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close', style: TextStyle(color: Colors.white54)),
-          ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _noImagePlaceholder() {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.image_not_supported_rounded,
+              color: Colors.white38, size: 48),
+          SizedBox(height: 8),
+          Text('No image available',
+              style: TextStyle(color: Colors.white38, fontSize: 13)),
         ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String label) {
+    return Text(
+      label.toUpperCase(),
+      style: const TextStyle(
+        color: Colors.white38,
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.2,
       ),
     );
   }

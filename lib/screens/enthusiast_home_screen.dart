@@ -52,6 +52,26 @@ class _EnthusiastHomeScreenState extends State<EnthusiastHomeScreen> {
         _userData = data ?? {};
         _isLoading = false;
       });
+
+      // Immediately push GPS once profile (and token) are confirmed valid
+      if ((data?['role'] ?? '') == 'enthusiast') {
+        _pushLocationNow();
+      }
+    }
+  }
+
+  /// Push current GPS to the backend right away (fire-and-forget).
+  Future<void> _pushLocationNow() async {
+    try {
+      final pos = await LocationService.getCurrentLocation();
+      if (pos != null) {
+        await NexoraApiService.updateExpertLocation(
+          pos.latitude,
+          pos.longitude,
+        );
+      }
+    } catch (_) {
+      // Not critical — background stream will retry on next movement
     }
   }
 
@@ -80,40 +100,49 @@ class _EnthusiastHomeScreenState extends State<EnthusiastHomeScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF07120B),
-      appBar: AppBar(
-        title: Image.asset('assets/images/nexor.png', height: 35),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu_rounded, color: Colors.white),
-            onPressed: () => Scaffold.of(context).openDrawer(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_selectedIndex != 0) {
+          setState(() => _selectedIndex = 0);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF07120B),
+        appBar: AppBar(
+          title: Image.asset('assets/images/nexor.png', height: 35),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu_rounded, color: Colors.white),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
           ),
         ),
-      ),
-      drawer: _buildDrawer(context),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _buildPages(),
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.only(bottom: 20, top: 10),
-        decoration: const BoxDecoration(
-          color: Color(0xFF0A140A),
-          border: Border(top: BorderSide(color: Colors.white10, width: 1)),
+        drawer: _buildDrawer(context),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _buildPages(),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _navItem(0, Icons.dashboard_rounded, 'Dashboard'),
-            _navItem(1, Icons.notifications_active_rounded, 'Requests'),
-            _navItem(2, Icons.camera_alt_rounded, 'Scan', isFab: true),
-            _navItem(3, Icons.history_rounded, 'History'),
-            _navItem(4, Icons.person_rounded, 'Profile'),
-          ],
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.only(bottom: 20, top: 10),
+          decoration: const BoxDecoration(
+            color: Color(0xFF0A140A),
+            border: Border(top: BorderSide(color: Colors.white10, width: 1)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _navItem(0, Icons.dashboard_rounded, 'Dashboard'),
+              _navItem(1, Icons.notifications_active_rounded, 'Requests'),
+              _navItem(2, Icons.camera_alt_rounded, 'Scan', isFab: true),
+              _navItem(3, Icons.history_rounded, 'History'),
+              _navItem(4, Icons.person_rounded, 'Profile'),
+            ],
+          ),
         ),
       ),
     );
