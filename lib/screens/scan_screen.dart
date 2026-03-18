@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'id_result_screen.dart';
 import 'scan_warning_screen.dart';
+import 'unknown_snake_screen.dart';
 
 /// Scan Screen — Live camera viewfinder with AI identification.
 class ScanScreen extends StatefulWidget {
@@ -214,7 +215,7 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
           return;
         }
 
-        // 3. We have a valid snake detection
+        // 3. We have a valid snake detection, check confidence
         int? snakeId;
         final rawId = data['species_id'];
         if (rawId != null) {
@@ -223,6 +224,20 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
 
         final double confidenceScore =
             (data['confidence'] ?? 0.0).toDouble() * 100.0;
+
+        // 4. Snake is detected, but AI has no idea what species it is.
+        if (confidenceScore < 70.0) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => UnknownSnakeScreen(
+                lang: widget.lang,
+              ),
+            ),
+          );
+          return;
+        }
+
         final bool isLowConfidence = confidenceScore < 80.0;
 
         Navigator.push(
